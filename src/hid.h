@@ -24,13 +24,14 @@ namespace pixart
 
     public:
         ~HidDevice();
-        bool open(char *hidrawPath, int flags = O_RDWR | O_NONBLOCK);
+        bool open(char *hidrawPath, int flags = O_RDWR );
         void close();
         std::shared_ptr<ReportDescriptor> getReportDescriptor();
         std::string getRawName();
         bool getRawInfo(hidraw_devinfo* rawInfo);
         bool setFeature(byte reportId, byte *data, int length);
         bool getFeature(byte reportId, byte *data, int *length, int maxLength);
+	bool Read(void);
     };
 
     class Item

@@ -1,3 +1,5 @@
+#ifndef __FLASHCONTROLLER__
+#define __FLASHCONTROLLER__
 #include <stdint.h>
 
 #include "type.h"
@@ -19,3 +21,5 @@ namespace pixart
         virtual bool erase(int startPage, int length) = 0;
     };
 }
+
+#endif //__FLASHCONTROLLER__

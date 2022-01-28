@@ -822,6 +822,20 @@ int Plp239FwUpdater::getFwVersion()
     return fwVer;
 }
 
+int Plp239FwUpdater::getReadSysRegister(byte bank,byte addr)
+{
+    int value;
+    value = mRegAccr->readRegister(bank, addr);
+    return value;
+}
+
+int Plp239FwUpdater::getReadUserRegister(byte bank,byte addr)
+{
+    int value;
+    value = mRegAccr->readuserRegister(bank, addr);
+    return value;
+}
+
 bool Plp239FwUpdater::fullyUpgrade()
 {
     // 1. Make sure upgrade binaries are ready.

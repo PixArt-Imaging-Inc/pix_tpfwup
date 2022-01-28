@@ -134,8 +134,12 @@ namespace pixart
         void writeFirmware(bool erase = true);
         void writeHidDesc();
         void writeParameter();
+		
 
         uint32_t calCheckSum(byte const * const array, int length);
+		int getReadSysRegister(byte bank,byte addr);
+		int getReadUserRegister(byte bank,byte addr);
+		
     };
 }
 

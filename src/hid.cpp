@@ -520,4 +520,33 @@ namespace pixart
         delete[] buffer;
         return ret;
     }
+    bool HidDevice::Read(void)
+    {
+
+	byte* buffer = new byte[20];	
+	int ret = read(mDevHandle,buffer,20);
+        /*
+	if(ret <0)
+        {
+		perror("read");
+	}
+	else
+	{
+		printf("read() read %d bytes:\n\t",ret);
+		for(int i=0;i<ret;i++)
+                   printf("%hhx",buffer[i]);
+		
+	} 
+        */       
+	/*
+	printf("\nret=%d",ret);
+	for(int i =0; i<32;i++)
+        {
+	  printf("(i=%d,data=%d)",i,buffer[i]);	
+	}
+*/
+	delete[] buffer;
+        return ret;
+
+    }
 }

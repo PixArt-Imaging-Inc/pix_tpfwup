@@ -3,23 +3,23 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "plp239regaccr.h"
+#include "pjp274regaccr.h"
 
 using namespace pixart;
 static const int RW_REG_REPORT_ID = 0x42;
 static const int BURST_RW_REG_REPORT_ID = 0x41;
 static const int RW_USER_REG_REPORT_ID = 0x43;
 
-Plp239RegAccr::Plp239RegAccr(HidDevice* dev) :
+Pjp274RegAccr::Pjp274RegAccr(HidDevice* dev) :
         mHidDevice(dev), mMaxBurstLength(0)
 {
 }
 
-Plp239RegAccr::~Plp239RegAccr()
+Pjp274RegAccr::~Pjp274RegAccr()
 {
 }
 
-void Plp239RegAccr::prepare()
+void Pjp274RegAccr::prepare()
 {
     /**
      * Read HID report descriptor and try to find the capability of
@@ -32,11 +32,12 @@ void Plp239RegAccr::prepare()
     // of parsing report descriptor, assign the burst length directly.
     mMaxBurstLength = 256;
 }
-byte Plp239RegAccr::readuserRegister(byte bank, byte address)
+
+byte Pjp274RegAccr::readuserRegister(byte bank, byte address)
 {
     byte buffer[4];
     int len = 0;
-    writeRegister((byte) (bank | 0x10), address, 0);
+    writeUserRegister((byte) (bank | 0x10), address, 0);
 
     bool res = mHidDevice->getFeature(RW_USER_REG_REPORT_ID, buffer, &len, 4);
     if (res && len == 4)
@@ -44,7 +45,7 @@ byte Plp239RegAccr::readuserRegister(byte bank, byte address)
     else
         return -1;
 }
-byte Plp239RegAccr::readRegister(byte bank, byte address)
+byte Pjp274RegAccr::readRegister(byte bank, byte address)
 {
     byte buffer[4];
     int len = 0;
@@ -57,7 +58,9 @@ byte Plp239RegAccr::readRegister(byte bank, byte address)
         return -1;
 }
 
-int Plp239RegAccr::readRegisters(byte* data, byte bank, byte startAddress,
+
+
+int Pjp274RegAccr::readRegisters(byte* data, byte bank, byte startAddress,
         uint64_t length)
 {
     for (uint64_t i = 0; i < length; ++i)
@@ -69,7 +72,8 @@ int Plp239RegAccr::readRegisters(byte* data, byte bank, byte startAddress,
     }
     return length;
 }
-int Plp239RegAccr::readUserRegisters(byte* data, byte bank, byte startAddress,
+
+int Pjp274RegAccr::readUserRegisters(byte* data, byte bank, byte startAddress,
         uint64_t length)
 {
     for (uint64_t i = 0; i < length; ++i)
@@ -81,7 +85,9 @@ int Plp239RegAccr::readUserRegisters(byte* data, byte bank, byte startAddress,
     }
     return length;
 }
-int Plp239RegAccr::burstReadRegister(byte* data, byte bank, byte address,
+
+
+int Pjp274RegAccr::burstReadRegister(byte* data, byte bank, byte address,
         uint64_t length)
 {
     // 1 byte for report ID.
@@ -136,19 +142,19 @@ int Plp239RegAccr::burstReadRegister(byte* data, byte bank, byte address,
     return length;
 }
 
-void Plp239RegAccr::writeRegister(byte bank, byte address, byte value)
+void Pjp274RegAccr::writeRegister(byte bank, byte address, byte value)
 {
     byte buffer[] =
     { address, bank, value };
     mHidDevice->setFeature(RW_REG_REPORT_ID, buffer, 3);
 }
-void Plp239RegAccr::writeUserRegister(byte bank, byte address, byte value)
+void Pjp274RegAccr::writeUserRegister(byte bank, byte address, byte value)
 {
     byte buffer[] =
     { address, bank, value };
     mHidDevice->setFeature(RW_USER_REG_REPORT_ID, buffer, 3);
 }
-void Plp239RegAccr::writeRegisters(byte bank, byte startAddress, byte* values,
+void Pjp274RegAccr::writeRegisters(byte bank, byte startAddress, byte* values,
         uint64_t length)
 {
     for (uint64_t i = 0; i < length; ++i)
@@ -156,12 +162,12 @@ void Plp239RegAccr::writeRegisters(byte bank, byte startAddress, byte* values,
         writeRegister(bank, startAddress + i, *(values + i));
     }
 }
-byte Plp239RegAccr::readInputReport(void)
+byte Pjp274RegAccr::readInputReport(void)
 {
     bool res = mHidDevice->Read();
     return res;
 }
-void Plp239RegAccr::burstWriteRegister(byte bank, byte address, byte* values,
+void Pjp274RegAccr::burstWriteRegister(byte bank, byte address, byte* values,
         uint64_t length)
 {
 #ifdef DEBUG

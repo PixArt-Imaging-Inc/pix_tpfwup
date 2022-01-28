@@ -18,6 +18,7 @@ namespace pixart
          * Read register value, return -1 if read failed.
          **/
         virtual byte readRegister(byte bank, byte address) = 0;
+		virtual byte readuserRegister(byte bank, byte address) = 0;
         virtual int readRegisters(byte* data, byte bank, byte startAddress,
                 uint64_t length) = 0;
         virtual int burstReadRegister(byte* data, byte bank, byte address,
@@ -27,6 +28,10 @@ namespace pixart
                 uint64_t length) = 0;
         virtual void burstWriteRegister(byte bank, byte address, byte* values,
                 uint64_t length) = 0;
+        virtual byte readInputReport(void) = 0;
+	virtual void writeUserRegister(byte bank, byte address, byte value) = 0;
+	virtual int readUserRegisters(byte* data, byte bank, byte startAddress,
+        uint64_t length) = 0;
     };
 }
 
