@@ -16,8 +16,8 @@ using namespace std;
 using namespace pixart;
 
 #define TITLE       "Pixart Touchpad Utility"
-#define VERSION      000001
-#define VERSION_STR "v0.0.1"
+#define VERSION      000002
+#define VERSION_STR "v0.0.2"
 
 int main(int argc, char **argv)
 {
