@@ -1,4 +1,4 @@
-#include "pjp274flashctrlr.h"
+#include "pjp255flashctrlr.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -8,33 +8,38 @@
 using namespace pixart;
 
 
-const int Pjp274FlashCtrlr::SRAM_BURST_SIZE = 0x00000100;
-const int Pjp274FlashCtrlr::PAGE_SIZE = 256;
-const int Pjp274FlashCtrlr::PAGE_COUNT_PERSECTOR = 16;
-const int Pjp274FlashCtrlr::SECTOR_COUNT = 15;
-const int Pjp274FlashCtrlr::PAGE_COUNT = SECTOR_COUNT * PAGE_COUNT_PERSECTOR;
-const int Pjp274FlashCtrlr::SECTOR_SIZE = PAGE_COUNT_PERSECTOR * PAGE_SIZE;
+const int pjp255FlashCtrlr::SRAM_BURST_SIZE = 0x00000100;
+const int pjp255FlashCtrlr::PAGE_SIZE = 256;
+const int pjp255FlashCtrlr::PAGE_COUNT_PERSECTOR = 16;
+const int pjp255FlashCtrlr::SECTOR_COUNT = 15;
+const int pjp255FlashCtrlr::PAGE_COUNT = SECTOR_COUNT * PAGE_COUNT_PERSECTOR;
+const int pjp255FlashCtrlr::SECTOR_SIZE = PAGE_COUNT_PERSECTOR * PAGE_SIZE;
 
-const int Pjp274FlashCtrlr::FIRMWARE_START_PAGE = 0;
-const int Pjp274FlashCtrlr::PARAMETER_START_PAGE = 224;
+const int pjp255FlashCtrlr::FIRMWARE_START_PAGE = 0;
+const int pjp255FlashCtrlr::PARAMETER_START_PAGE = 224;
 
-const byte Pjp274FlashCtrlr::IO_BANK = 6;
+const byte pjp255FlashCtrlr::IO_BANK = 2;
+const byte pjp255FlashCtrlr::FIRMWARE_CRC=0x02;
+const byte pjp255FlashCtrlr::PARAMETER_CRC=0x04;
+const byte pjp255FlashCtrlr::DEFAULT_FIRMWARE_CRC=0x10;
+const byte pjp255FlashCtrlr::DEFAULT_PARAMETER_CRC=0x20;
 
 /* HW SFC register address */
 
-const byte Pjp274FlashCtrlr::REG_SRAM_ACCESS_DATA = 0x0b;
+const byte pjp255FlashCtrlr::REG_SRAM_ACCESS_DATA = 0x0b;
 
 
-Pjp274FlashCtrlr::Pjp274FlashCtrlr(RegisterAccessor* regAccessor) :
+pjp255FlashCtrlr::pjp255FlashCtrlr(RegisterAccessor* regAccessor) :
         FlashController(regAccessor)
 {
 }
 
-Pjp274FlashCtrlr::~Pjp274FlashCtrlr()
+pjp255FlashCtrlr::~pjp255FlashCtrlr()
 {
 }
-bool Pjp274FlashCtrlr::flashframeStart()
+bool pjp255FlashCtrlr::flashframeStart()
 {
+  /*  
   int retry = 0;
   int value=0;
   //frame start
@@ -48,38 +53,53 @@ bool Pjp274FlashCtrlr::flashframeStart()
        if(retry>10)
          return false;
        retry++;
-   }
+   }*/
   return true;
 }
-bool Pjp274FlashCtrlr::writeEnable()
+bool pjp255FlashCtrlr::WriteCommand(byte cmd)  // -----------------done
 {
    int retry = 0;
    int value=0;
-   // Flash Execute with WEN
-   mRegAccessor->writeRegister(4, 0x2c, 0x00);//inst_cmd
-   mRegAccessor->writeRegister(4, 0x40, 0x06);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x41, 0x01);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x42, 0x00);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x43, 0x00);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x44, 0x00);//data_cnt
-   mRegAccessor->writeRegister(4, 0x45, 0x00);//data_cnt
-   mRegAccessor->writeRegister(4, 0x46, 0x00);//data_cnt
-   mRegAccessor->writeRegister(4, 0x47, 0x00);//data_cnt
-   flashframeStart();
+   //write command
+   mRegAccessor->writeRegister(4, 0x2c, cmd);//frame start
+   while(true)
+   {
+       usleep(1000);
+       value = mRegAccessor->readRegister(4, 0x2c);
+       if((value && cmd) ==0)
+         break;
+       if(retry>10)
+         return false;
+       retry++;
+   }
+  return true;
+}
+
+bool pjp255FlashCtrlr::FlashExecuteWith(byte cmd, byte flash_cmd, uint16_t cnt)  // -----------------done
+{ //clean Bank 4 0x2C
+   mRegAccessor->writeRegister(4, 0x2c, 0x00);
+   // Write flash command
+   mRegAccessor->writeRegister(4, 0x20, flash_cmd);
+    //Write data count
+   mRegAccessor->writeRegister(4, 0x22, (cnt & 0xFF));// Low byte
+   mRegAccessor->writeRegister(4, 0x23, (cnt>>8));    //high byte
+   //write command
+   return WriteCommand(cmd);
+}
+
+
+bool pjp255FlashCtrlr::writeEnable()    // -----------------done
+{
+   int retry = 0;
+   int value=0;
+
+   //cmd=0x02; flash cmd =0x06, cnt=0x0000 
+   FlashExecuteWith(0x02, 0x06, 0x0000); 
    value=0;
    while(true)
    {
-     // Flash Execute with RDSR
-     mRegAccessor->writeRegister(4, 0x2c, 0x01);//inst_cmd
-     mRegAccessor->writeRegister(4, 0x40, 0x05);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x41, 0x01);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x42, 0x00);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x43, 0x01);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x44, 0x01);//data_cnt
-     mRegAccessor->writeRegister(4, 0x45, 0x00);//data_cnt
-     mRegAccessor->writeRegister(4, 0x46, 0x00);//data_cnt
-     mRegAccessor->writeRegister(4, 0x47, 0x00);//data_cnt
-     flashframeStart();
+    //cmd=0x08; flash cmd =0x05, cnt=0x0001   
+     FlashExecuteWith(0x08, 0x05, 0x0001);   
      usleep(1000);
      value = mRegAccessor->readRegister(4, 0x1c);
      if((value&0x2)!=0)
@@ -91,25 +111,15 @@ bool Pjp274FlashCtrlr::writeEnable()
   return true;
 }
 
-bool Pjp274FlashCtrlr::checkBusy()
+bool pjp255FlashCtrlr::checkBusy()  // -----------------done
 {
    int retry = 0;
    int retry1 = 0;
    int value;
    while(true)
-   {
-     // Flash Execute with RDSR
-     mRegAccessor->writeRegister(4, 0x2c, 0x01);//inst_cmd
-     mRegAccessor->writeRegister(4, 0x40, 0x05);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x41, 0x01);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x42, 0x00);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x43, 0x01);//CCR_cmd
-     mRegAccessor->writeRegister(4, 0x44, 0x01);//data_cnt
-     mRegAccessor->writeRegister(4, 0x45, 0x00);//data_cnt
-     mRegAccessor->writeRegister(4, 0x46, 0x00);//data_cnt
-     mRegAccessor->writeRegister(4, 0x47, 0x00);//data_cnt
-
-     flashframeStart();
+   { 
+    //cmd=0x08; flash cmd =0x05, cnt=0x0001   
+     FlashExecuteWith(0x08, 0x05, 0x0001);        
      usleep(1000);
      value = mRegAccessor->readRegister(4, 0x1c);
      if((value&0x1)==0)
@@ -119,22 +129,71 @@ bool Pjp274FlashCtrlr::checkBusy()
      retry++;
    }
    return true;
-
 }
 
-void Pjp274FlashCtrlr::powerOnFlashcontroller()
+
+
+uint32_t pjp255FlashCtrlr::ReadCRCContent(CRCType type)
+{
+    byte control_data= FIRMWARE_CRC;
+
+    switch(type)
+    {
+        case CRCType::PAR_CRC:
+            control_data=PARAMETER_CRC;
+          break;
+        case CRCType::DEF_PAR_CRC:
+            control_data = DEFAULT_PARAMETER_CRC;
+         break;
+        case CRCType::DEF_FW_CRC:
+            control_data = DEFAULT_FIRMWARE_CRC;
+        break;
+        default:
+          break;
+    }
+
+    byte* pData = new byte[1];
+    mRegAccessor->writeUserRegister(0,0x82,control_data);
+    byte loop=0;
+
+    do
+    {
+        usleep(1000);
+	    mRegAccessor->readUserRegisters(pData,0,0x82,1);
+        if((pData[0]& 0x01)==0) break;
+        loop++;
+    } while (loop<50);
+    
+    pData=new byte[4];
+    mRegAccessor->readUserRegisters(pData,0,0x84,4);
+    uint32_t CRC = (pData[3]<<24)+(pData[2]<<16)+(pData[1]<<8)+ pData[0];
+    delete [] pData;
+    return CRC; 
+}
+
+byte pjp255FlashCtrlr::SingleReaduserRegiser(byte addr)
+{
+    byte* pData = new byte[1];
+    mRegAccessor->readUserRegisters(pData,0,addr,1);
+    byte ret=pData[0];
+    delete [] pData;
+    return ret;
+}
+
+
+void pjp255FlashCtrlr::powerOnFlashcontroller() // -----------------done
 {
    mRegAccessor->writeRegister(1, 0x0d, 0x02);
 
 }
-void Pjp274FlashCtrlr::enterEngineerMode()
+void pjp255FlashCtrlr::enterEngineerMode()  // -----------------done
 {
    mRegAccessor->writeRegister(1, 0x2c, 0xaa);
    mRegAccessor->writeRegister(1, 0x2d, 0xcc);
    usleep(10000);
 }
 
-bool Pjp274FlashCtrlr::exitEngineerMode()
+bool pjp255FlashCtrlr::exitEngineerMode() // -----------------done
 {
    int i = 0;
    byte res;
@@ -145,12 +204,12 @@ bool Pjp274FlashCtrlr::exitEngineerMode()
    
    while ((res&0x01)==0)
    {
-	usleep(10000);
+	    usleep(10000);
         i++;
-	if(i>50)
+	    if(i>50)
         {
            return false;
-	}
+	    }
         res=mRegAccessor->readRegister(6, 0x70);
    }
    
@@ -158,11 +217,8 @@ bool Pjp274FlashCtrlr::exitEngineerMode()
 
 }
 
-
-
-
-int Pjp274FlashCtrlr::writeFlash(byte* data, int length, int startPage,
-        bool doErase)
+int pjp255FlashCtrlr::writeFlash(byte* data, int length, int startPage,
+        bool doErase)    // -----------------done
 {
 #ifdef DEBUG
     printf("writeFlash() length=%d, startPage=%d\n", length, startPage);
@@ -176,7 +232,7 @@ int Pjp274FlashCtrlr::writeFlash(byte* data, int length, int startPage,
     if ((startSector + sectorCount) > SECTOR_COUNT)
         sectorCount = SECTOR_COUNT - startSector;
     
-    mRegAccessor->writeRegister(1, 0x0d, 0x02);
+    mRegAccessor->writeRegister(1, 0x0d, 0x02);  
    
     if (doErase)
     {
@@ -193,7 +249,10 @@ int Pjp274FlashCtrlr::writeFlash(byte* data, int length, int startPage,
         int remainedSize = length - i;
         int writeSize =
                 remainedSize < SRAM_BURST_SIZE ? remainedSize : SRAM_BURST_SIZE;
+
         int startWritePage = startPage+(i / PAGE_SIZE);
+
+
 #ifdef DEBUG
         printf("startWritePage: %d, writeSize: %d\n", startWritePage, writeSize);
 #endif 
@@ -222,7 +281,7 @@ int Pjp274FlashCtrlr::writeFlash(byte* data, int length, int startPage,
     return 1;
 }
 
-int Pjp274FlashCtrlr::readFlash(byte** data, int startPage, int pageLength)
+int pjp255FlashCtrlr::readFlash(byte** data, int startPage, int pageLength)
 {
     if (pageLength == -1 || pageLength > (PAGE_COUNT - startPage))
         pageLength = PAGE_COUNT - startPage;
@@ -253,7 +312,7 @@ int Pjp274FlashCtrlr::readFlash(byte** data, int startPage, int pageLength)
     return dataSize;
 }
 
-bool Pjp274FlashCtrlr::erase(int startPage, int pageLength)
+bool pjp255FlashCtrlr::erase(int startPage, int pageLength)
 {
     if (startPage % PAGE_COUNT_PERSECTOR != 0)
         return false;
@@ -267,18 +326,16 @@ bool Pjp274FlashCtrlr::erase(int startPage, int pageLength)
 }
 
 
-void Pjp274FlashCtrlr::setFlashAddress(unsigned int addr)
+void pjp255FlashCtrlr::setFlashAddress(unsigned int addr) // -----------------done
 {
-    mRegAccessor->writeRegister(4, 0x48, (addr&0xff));
-    mRegAccessor->writeRegister(4, 0x49, (((addr&0xff00)>>8)&0xff));
-    mRegAccessor->writeRegister(4, 0x4a, (((addr&0xff0000)>>16)&0xff));
-    mRegAccessor->writeRegister(4, 0x4b, (((addr&0xff000000)>>24)&0xff));
+    mRegAccessor->writeRegister(4, 0x24, (addr&0xff));
+    mRegAccessor->writeRegister(4, 0x25, (((addr&0xff00)>>8)&0xff));
+    mRegAccessor->writeRegister(4, 0x26, (((addr&0xff0000)>>16)&0xff));
 }
-
 
 // TODO
 
-bool Pjp274FlashCtrlr::eraseWithSector(byte sector, byte length)
+bool pjp255FlashCtrlr::eraseWithSector(byte sector, byte length)  // -----------------done
 {
 #ifdef DEBUG
     printf("eraseWithSector() sector=%d, length=%d\n", sector, length);
@@ -289,29 +346,20 @@ bool Pjp274FlashCtrlr::eraseWithSector(byte sector, byte length)
     for(sectorcnt=0;sectorcnt<length;sectorcnt++)
     {    
         do
-	{
-	 res=checkBusy();
-	} while(!res) ;	
+	    {
+	        res=checkBusy();
+	    } while(!res) ;	
  	
-	writeEnable();
-	setFlashAddress((sector+sectorcnt)*4096);
-        
-	mRegAccessor->writeRegister(4, 0x2c, 0x00);//inst_cmd
-        mRegAccessor->writeRegister(4, 0x40, 0x20);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x41, 0x25);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x42, 0x00);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x43, 0x00);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x44, 0x00);//data_cnt
-        mRegAccessor->writeRegister(4, 0x45, 0x00);//data_cnt
-        mRegAccessor->writeRegister(4, 0x46, 0x00);//data_cnt
-        mRegAccessor->writeRegister(4, 0x47, 0x00);//data_cnt
-        flashframeStart();
-      
+	    writeEnable();
+	    setFlashAddress((sector+sectorcnt)*4096);
+        //cmd =0x02; flash_cmd=0x20; cnt=3
+        FlashExecuteWith(0x02, 0x20, 0x0003); 
+        res=checkBusy();      
     }
     return true;
 }
 
-bool Pjp274FlashCtrlr::writeSram(byte* data, int length)
+bool pjp255FlashCtrlr::writeSram(byte* data, int length) // -----------------done
 {
 #ifdef DEBUG
     printf("writeSram(), length=%d\n", length);
@@ -323,13 +371,14 @@ bool Pjp274FlashCtrlr::writeSram(byte* data, int length)
     memcpy(sramBuf, data, length);
     mRegAccessor->writeRegister(IO_BANK, 0x09, 0x08);//sram select
     mRegAccessor->writeRegister(IO_BANK, 0x0a, 0x00);//NCS = 0
+
     mRegAccessor->burstWriteRegister(IO_BANK, REG_SRAM_ACCESS_DATA, sramBuf,
             remapSize);
     mRegAccessor->writeRegister(IO_BANK, 0x0a, 0x01);//NCS = 0
     return res;
 }
 
-bool Pjp274FlashCtrlr::writeSramToFlash(byte sector, byte length)
+bool pjp255FlashCtrlr::writeSramToFlash(byte sector, byte length)   
 {
 #ifdef DEBUG
     printf("writeSramToFlash(), sector=%d, length=%d\n", sector, length);
@@ -340,34 +389,22 @@ bool Pjp274FlashCtrlr::writeSramToFlash(byte sector, byte length)
      res=checkBusy();
    } while(!res) ;	
    writeEnable();
-   setFlashAddress(sector*256);
+   setFlashAddress(sector*256);  // sector :it means startWithPage
    mRegAccessor->writeRegister(4, 0x2e, 0x00);//sram access addr
    mRegAccessor->writeRegister(4, 0x2f, 0x00);//sram access addr
-
-   mRegAccessor->writeRegister(4, 0x2c, 0x84);//inst_cmd
-   mRegAccessor->writeRegister(4, 0x40, 0x02);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x41, 0x25);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x42, 0x00);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x43, 0x01);//CCR_cmd
-   mRegAccessor->writeRegister(4, 0x44, 0x00);//data_cnt
-   mRegAccessor->writeRegister(4, 0x45, 0x01);//data_cnt
-   mRegAccessor->writeRegister(4, 0x46, 0x00);//data_cnt
-   mRegAccessor->writeRegister(4, 0x47, 0x00);//data_cnt
-   res=flashframeStart();
-    
-    return res;
+   //cmd=0x81; flash_cmd=0x02; cnt =256 
+   FlashExecuteWith(0x81, 0x02, 0x0100);  
+   res=checkBusy();  
+   return res;
 }
 
-void Pjp274FlashCtrlr::readFlashToSram(byte sector, byte length)
+void pjp255FlashCtrlr::readFlashToSram(byte sector, byte length)
 {
 
 
-    
- 
-    
 }
 
-int Pjp274FlashCtrlr::readSram(byte* data, int length)
+int pjp255FlashCtrlr::readSram(byte* data, int length)
 {
 #ifdef DEBUG
     printf("readSram(), length=%d\n", length);
@@ -397,7 +434,7 @@ int Pjp274FlashCtrlr::readSram(byte* data, int length)
 
     return readLength;
 }
-void Pjp274FlashCtrlr::readSysRegisterBatch(byte bank,int length,bool AutoRead)
+void pjp255FlashCtrlr::readSysRegisterBatch(byte bank,int length,bool AutoRead)
 {
 	byte* pData = new byte[length];
 	mRegAccessor->readRegisters(pData,bank,0,length);
@@ -409,7 +446,7 @@ void Pjp274FlashCtrlr::readSysRegisterBatch(byte bank,int length,bool AutoRead)
 	
 	delete [] pData;
 }
-void Pjp274FlashCtrlr::readUserRegisterBatch(byte bank,int length,bool AutoRead)
+void pjp255FlashCtrlr::readUserRegisterBatch(byte bank,int length,bool AutoRead)
 {
 	byte* pData = new byte[length];
 	mRegAccessor->readUserRegisters(pData,bank,0,length);
@@ -421,15 +458,15 @@ void Pjp274FlashCtrlr::readUserRegisterBatch(byte bank,int length,bool AutoRead)
 	
 	delete [] pData;
 }
-void Pjp274FlashCtrlr::writeRegister(byte bank,byte addr,byte value)
+void pjp255FlashCtrlr::writeRegister(byte bank,byte addr,byte value)
 {
    mRegAccessor->writeRegister(bank, addr, value);
 }
-void Pjp274FlashCtrlr::writeUserRegister(byte bank,byte addr,byte value)
+void pjp255FlashCtrlr::writeUserRegister(byte bank,byte addr,byte value)
 {
    mRegAccessor->writeUserRegister(bank,addr,value);
 }
-void Pjp274FlashCtrlr::readFrame(void)
+void pjp255FlashCtrlr::readFrame(void)
 {
       
         mRegAccessor->writeUserRegister(2,0x7,0x10);

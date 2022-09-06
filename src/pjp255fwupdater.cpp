@@ -1,4 +1,4 @@
-#include "pjp274fwupdater.h"
+#include "pjp255fwupdater.h"
 #include <unistd.h>
 #include <inttypes.h>
 
@@ -14,31 +14,31 @@ using namespace pixart;
 using namespace std;
 
 /* ============== CPU system control ============== */
-const byte Pjp274FwUpdater::CPU_SYS_BANK = 0x01;
+const byte pjp255FwUpdater::CPU_SYS_BANK = 0x01;
 
 /* ============= Flash & Test control ============== */
-const byte Pjp274FwUpdater::FLASH_CTRL_BANK = 0x04;
+const byte pjp255FwUpdater::FLASH_CTRL_BANK = 0x04;
 
 /* ==================== IO Bank ==================== */
-const byte Pjp274FwUpdater::IO_BANK = 0x06;
+const byte pjp255FwUpdater::IO_BANK = 0x06;
 // Control watch dog.
 
 
 /* ================= User Parameter ================= */
-const int Pjp274FwUpdater::USER_PARAM_BANK_SIZE = 224;
-const int Pjp274FwUpdater::USER_PARAM_SIZE = 1024;
+const int pjp255FwUpdater::USER_PARAM_BANK_SIZE = 224;
+const int pjp255FwUpdater::USER_PARAM_SIZE = 1024;
 
-Pjp274FwUpdater::Pjp274FwUpdater(DevHelper* devHelper,
+pjp255FwUpdater::pjp255FwUpdater(DevHelper* devHelper,
         RegisterAccessor* regaccr) :
         mDevHelper(devHelper), mRegAccr(regaccr), mTargetFirmware(0)
 {
     mRegAccr->prepare();
-    mFlashCtrlr = make_shared<Pjp274FlashCtrlr>(mRegAccr);
+    mFlashCtrlr = make_shared<pjp255FlashCtrlr>(mRegAccr);
 }
 
 
 
-bool Pjp274FwUpdater::reset(ResetType type)
+bool pjp255FwUpdater::reset(ResetType type)
 {
     switch (type)
     {
@@ -59,7 +59,7 @@ bool Pjp274FwUpdater::reset(ResetType type)
     return true;
 }
 
-bool loadBin2Vec_(ifstream &ifs, vector<byte> &vec)
+bool _loadBin2Vec(ifstream &ifs, vector<byte> &vec)
 {
     bool ret;
     ifs.unsetf(std::ios::skipws);
@@ -100,43 +100,41 @@ bool loadBin2Vec_(ifstream &ifs, vector<byte> &vec)
     return ret;
 }
 
-bool Pjp274FwUpdater::loadFwBin(const char * path)
+bool pjp255FwUpdater::loadFwBin(const char * path)
 {
     bool ret;
     printf("Binary path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
-    loadBin2Vec_(ifs, mTargetFirmware);
+    ret=_loadBin2Vec(ifs, mTargetFirmware);
     ifs.close();
     return ret;
 }
 
-bool Pjp274FwUpdater::loadParameterBin(const char * path)
+bool pjp255FwUpdater::loadParameterBin(const char * path)
 {
     bool ret;
     printf("Binary path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
-    loadBin2Vec_(ifs, mTargetParameter);
+    ret=_loadBin2Vec(ifs, mTargetParameter);
     ifs.close();
     return ret;
 }
 
 
 
-void Pjp274FwUpdater::releaseFwBin()
+void pjp255FwUpdater::releaseFwBin()
 {
     mTargetFirmware.clear();
 }
 
-
-
-void Pjp274FwUpdater::releaseParameterBin()
+void pjp255FwUpdater::releaseParameterBin()
 {
     mTargetParameter.clear();
 }
 
-bool Pjp274FwUpdater::loadUpgradeBin(char const* path)
+bool pjp255FwUpdater::loadUpgradeBin(char const* path)
 {
-    static const int UPGRADE_FILE_SIZE = 61440 + 4096 ;
+    static const int UPGRADE_FILE_SIZE = (4096*14) + 4096 ; //need confirm 
     printf("Upgrade file path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
     ifs.unsetf(std::ios::skipws);
@@ -147,12 +145,17 @@ bool Pjp274FwUpdater::loadUpgradeBin(char const* path)
         printf("File size too large. (%d > %d)\n", size, UPGRADE_FILE_SIZE);
         return false;
     }
+    if (size < UPGRADE_FILE_SIZE)
+    {
+        printf("File size too small. (%d > %d)\n", size, UPGRADE_FILE_SIZE);
+        return false;
+    }
 
     ifs.seekg(0, ios::beg);
     // Read code.
     mTargetFirmware.clear();
-    mTargetFirmware.reserve(45056);
-    copy_n(istream_iterator<byte>(ifs), 45056,
+    mTargetFirmware.reserve(4096*14);
+    copy_n(istream_iterator<byte>(ifs), 4096*14,
             std::back_inserter(mTargetFirmware));
     // Read parameters.
     mTargetParameter.clear();
@@ -163,14 +166,14 @@ bool Pjp274FwUpdater::loadUpgradeBin(char const* path)
     return true;
 }
 
-void Pjp274FwUpdater::releaseUpgradeBin()
+void pjp255FwUpdater::releaseUpgradeBin()
 {
     this->releaseFwBin();
     this->releaseParameterBin();
    
 }
 
-uint32_t Pjp274FwUpdater::calCheckSum(byte const * const array, int length)
+uint32_t pjp255FwUpdater::calCheckSum(byte const * const array, int length)
 {
     uint32_t crc;
     uint32_t sum1 = 0xFFFF, sum2 = 0xFFFF;
@@ -188,8 +191,23 @@ uint32_t Pjp274FwUpdater::calCheckSum(byte const * const array, int length)
     return crc;
 }
 
+void pjp255FwUpdater::get_calchecksum(bool parameterpart)
+{
+    uint32_t result=0;
+    if (parameterpart==false)
+    {
+        result=calCheckSum(mTargetFirmware.data(), mTargetFirmware.size());    
+    }
+    else 
+    {
+        result=calCheckSum(mTargetParameter.data(), mTargetParameter.size());
+    }
+    
+    printf("The CRC content of input bin file is : 0x%8x\n", result);
+}
 
-int Pjp274FwUpdater::getICType()
+
+int pjp255FwUpdater::getICType()
 {
     int IcType;
     IcType = mRegAccr->readRegister(0, 0x79);
@@ -197,72 +215,103 @@ int Pjp274FwUpdater::getICType()
     return IcType;
 }
 
-int Pjp274FwUpdater::getFwVersion()
+
+
+int pjp255FwUpdater::getFwVersion()
 {
     int fwVer;
     fwVer = mRegAccr->readuserRegister(0, 0xb3);
     fwVer = (fwVer << 8) | mRegAccr->readuserRegister(0, 0xb2);
     return fwVer;
 }
-int Pjp274FwUpdater::getReadSysRegister(byte bank,byte addr)
+int pjp255FwUpdater::getReadSysRegister(byte bank,byte addr)
 {
     int value;
     value = mRegAccr->readRegister(bank, addr);
     return value;
 }
 
-int Pjp274FwUpdater::getReadUserRegister(byte bank,byte addr)
+int pjp255FwUpdater::getReadUserRegister(byte bank,byte addr)
 {
     int value;
     value = mRegAccr->readuserRegister(bank, addr);
     return value;
 }
 
-bool Pjp274FwUpdater::fullyUpgrade()
+bool pjp255FwUpdater::fullyUpgrade()
 {
    if (mTargetFirmware.size() <= 0)
         return false;
-    int res;
+        
     bool erase = true;
-    mFlashCtrlr->enterEngineerMode();
-
-    
-    res = mFlashCtrlr->writeFlash(mTargetFirmware.data(),
-            mTargetFirmware.size(), Pjp274FlashCtrlr::FIRMWARE_START_PAGE,
-            erase);
-    mFlashCtrlr->exitEngineerMode();
-    printf("writeFirmware() result: %d\n", res);
+    writeFirmware(erase);
+    usleep(100000); //wait 100ms
+    writeParameter();
     return true;
 }
 
-void Pjp274FwUpdater::writeFirmware(bool erase)
+void pjp255FwUpdater::writeFirmware(bool erase)
 {
     if (mTargetFirmware.size() <= 0)
         return;
     int res;
-    mFlashCtrlr->enterEngineerMode(); 
+    mFlashCtrlr->enterEngineerMode();
     res = mFlashCtrlr->writeFlash(mTargetFirmware.data(),
-            mTargetFirmware.size(), Pjp274FlashCtrlr::FIRMWARE_START_PAGE,
+            mTargetFirmware.size(), pjp255FlashCtrlr::FIRMWARE_START_PAGE,
             erase);
     mFlashCtrlr->exitEngineerMode();
     printf("writeFirmware() result: %d\n", res);
 }
 
+void pjp255FwUpdater::GetChipCRC(pjp255FlashCtrlr::CRCType typ)
+{
+   string whichType = "DEFAULT FW"; 
+   uint32_t CRC_result= mFlashCtrlr->ReadCRCContent(typ);
 
-void Pjp274FwUpdater::writeParameter()
+   switch(typ)
+   {
+     case pjp255FlashCtrlr::CRCType::FW_CRC:
+        whichType="FW";
+        break;
+    case pjp255FlashCtrlr::CRCType::PAR_CRC:
+        whichType="PARAM";
+        break;
+   
+     case pjp255FlashCtrlr::CRCType::DEF_PAR_CRC:
+        whichType="DEFAULT PARAM";
+        break;
+     default:
+        break;
+
+   }
+    printf("The %s CRC content is : 0x%8x\n",whichType.c_str(), CRC_result);
+   
+}
+
+byte pjp255FwUpdater::getHidFwVersion()
+{
+    return mFlashCtrlr->SingleReaduserRegiser(0x7F);
+}
+
+byte pjp255FwUpdater::getHidParversion()
+{
+    return mFlashCtrlr->SingleReaduserRegiser(0x7E);
+}
+
+void pjp255FwUpdater::writeParameter()
 {
     if (mTargetParameter.size() == 0)
         return;
     int res;
      mFlashCtrlr->enterEngineerMode();
     res = mFlashCtrlr->writeFlash(mTargetParameter.data(),
-            mTargetParameter.size(), Pjp274FlashCtrlr::PARAMETER_START_PAGE,
+            mTargetParameter.size(), pjp255FlashCtrlr::PARAMETER_START_PAGE,
             true);
     mFlashCtrlr->exitEngineerMode();
     printf("writeParameter() result: %d\n", res);
 }
 
-void Pjp274FwUpdater::ReadFrameData()
+void pjp255FwUpdater::ReadFrameData()
 {
      while(1)
      {	
@@ -271,7 +320,7 @@ void Pjp274FwUpdater::ReadFrameData()
      }
 }
 
-void Pjp274FwUpdater::ReadBatchUserRegister(byte bank, int length,bool AutoRead)
+void pjp255FwUpdater::ReadBatchUserRegister(byte bank, int length,bool AutoRead)
 {
     
     
@@ -286,7 +335,7 @@ void Pjp274FwUpdater::ReadBatchUserRegister(byte bank, int length,bool AutoRead)
      
 }
 
-void Pjp274FwUpdater::ReadBatchSysRegister(byte bank, int length,bool AutoRead)
+void pjp255FwUpdater::ReadBatchSysRegister(byte bank, int length,bool AutoRead)
 {
     
      mFlashCtrlr->readSysRegisterBatch(bank,length,AutoRead);
@@ -299,11 +348,11 @@ void Pjp274FwUpdater::ReadBatchSysRegister(byte bank, int length,bool AutoRead)
     } 
 }
 
-void Pjp274FwUpdater::writeRegister(byte bank,byte addr,byte value)
+void pjp255FwUpdater::writeRegister(byte bank,byte addr,byte value)
 {
 	mFlashCtrlr->writeRegister(bank,addr,value);
 }
-void Pjp274FwUpdater::writeUserRegister(byte bank,byte addr,byte value)
+void pjp255FwUpdater::writeUserRegister(byte bank,byte addr,byte value)
 {
 	mFlashCtrlr->writeUserRegister(bank,addr,value);
 }
