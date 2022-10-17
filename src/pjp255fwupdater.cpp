@@ -162,7 +162,7 @@ bool pjp255FwUpdater::loadUpgradeBin(char const* path)
     mTargetParameter.reserve(4096);
     std::copy_n(istream_iterator<byte>(ifs), 4096,
             std::back_inserter(mTargetParameter));
-
+    ifs.close();
     return true;
 }
 
@@ -313,11 +313,11 @@ void pjp255FwUpdater::writeParameter()
 
 void pjp255FwUpdater::ReadFrameData()
 {
-     while(1)
-     {	
-     mFlashCtrlr->readFrame();
-     usleep(10);
-     }
+    while(1)
+    {	
+        mFlashCtrlr->readFrame();
+        usleep(10);
+    }
 }
 
 void pjp255FwUpdater::ReadBatchUserRegister(byte bank, int length,bool AutoRead)

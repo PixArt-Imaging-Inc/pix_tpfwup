@@ -817,6 +817,7 @@ void Plp239FwUpdater::releaseHidDescBin()
 int Plp239FwUpdater::getFwVersion()
 {
     int fwVer;
+    // need Customize FW
     fwVer = mRegAccr->readRegister(CLK_POW_BANK, R_FW_VER_H);
     fwVer = (fwVer << 8) | mRegAccr->readRegister(CLK_POW_BANK, R_FW_VER_L);
     return fwVer;

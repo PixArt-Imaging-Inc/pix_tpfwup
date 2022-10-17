@@ -295,17 +295,17 @@ bool Pjp274FlashCtrlr::eraseWithSector(byte sector, byte length)
  	
 	writeEnable();
 	setFlashAddress((sector+sectorcnt)*4096);
-        
-	mRegAccessor->writeRegister(4, 0x2c, 0x00);//inst_cmd
-        mRegAccessor->writeRegister(4, 0x40, 0x20);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x41, 0x25);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x42, 0x00);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x43, 0x00);//CCR_cmd
-        mRegAccessor->writeRegister(4, 0x44, 0x00);//data_cnt
-        mRegAccessor->writeRegister(4, 0x45, 0x00);//data_cnt
-        mRegAccessor->writeRegister(4, 0x46, 0x00);//data_cnt
-        mRegAccessor->writeRegister(4, 0x47, 0x00);//data_cnt
-        flashframeStart();
+    
+    mRegAccessor->writeRegister(4, 0x2c, 0x00);//inst_cmd
+    mRegAccessor->writeRegister(4, 0x40, 0x20);//CCR_cmd
+    mRegAccessor->writeRegister(4, 0x41, 0x25);//CCR_cmd
+    mRegAccessor->writeRegister(4, 0x42, 0x00);//CCR_cmd
+    mRegAccessor->writeRegister(4, 0x43, 0x00);//CCR_cmd
+    mRegAccessor->writeRegister(4, 0x44, 0x00);//data_cnt
+    mRegAccessor->writeRegister(4, 0x45, 0x00);//data_cnt
+    mRegAccessor->writeRegister(4, 0x46, 0x00);//data_cnt
+    mRegAccessor->writeRegister(4, 0x47, 0x00);//data_cnt
+    flashframeStart();
       
     }
     return true;
@@ -430,49 +430,49 @@ void Pjp274FlashCtrlr::writeUserRegister(byte bank,byte addr,byte value)
    mRegAccessor->writeUserRegister(bank,addr,value);
 }
 void Pjp274FlashCtrlr::readFrame(void)
-{
-      
-        mRegAccessor->writeUserRegister(2,0x7,0x10);
-        byte NumDrive = mRegAccessor->readRegister(9, 0x01);
-	byte NumSense = mRegAccessor->readRegister(9, 0x02);
-	mRegAccessor->writeRegister(IO_BANK, 0x0E, NumDrive);
-        mRegAccessor->writeRegister(IO_BANK, 0x0F, NumSense);
-	mRegAccessor->writeRegister(IO_BANK, 0x08, 0x00);
-	mRegAccessor->writeRegister(IO_BANK, 0x09, 0x05);
-	mRegAccessor->writeRegister(IO_BANK, 0x0A, 0x00);
-	mRegAccessor->writeRegister(4, 0x1c, 0);
-        mRegAccessor->writeRegister(4, 0x1d, 0);
+{     
+    mRegAccessor->writeUserRegister(2,0x7,0x10);
+    byte NumDrive = mRegAccessor->readRegister(9, 0x01);
+    byte NumSense = mRegAccessor->readRegister(9, 0x02);
+    mRegAccessor->writeRegister(IO_BANK, 0x0E, NumDrive);
+    mRegAccessor->writeRegister(IO_BANK, 0x0F, NumSense);
+    mRegAccessor->writeRegister(IO_BANK, 0x08, 0x00);
+    mRegAccessor->writeRegister(IO_BANK, 0x09, 0x05);
+    mRegAccessor->writeRegister(IO_BANK, 0x0A, 0x00);
+    mRegAccessor->writeRegister(4, 0x1c, 0);
+    mRegAccessor->writeRegister(4, 0x1d, 0);
         
-	bool res ;
-        int readLength = 0;
-	int dataSize = (NumDrive+1)*(NumSense+1)*2;
-	byte* pData = new byte[dataSize];
-        printf("\n NumDrive=%d,NumSense=%d,dataSize=%d\n,",NumDrive,NumSense,dataSize);
-	for (int i = 0; i < dataSize; i += SRAM_BURST_SIZE)
-        {
+    bool res ;
+    int readLength = 0;
+    int dataSize = (NumDrive+1)*(NumSense+1)*2;
+    byte* pData = new byte[dataSize];
+    
+    printf("\n NumDrive=%d,NumSense=%d,dataSize=%d\n,",NumDrive,NumSense,dataSize);
+    for (int i = 0; i < dataSize; i += SRAM_BURST_SIZE)
+    {
         int remainedSize = dataSize - i;
         int readSize =
                 remainedSize < SRAM_BURST_SIZE ? remainedSize : SRAM_BURST_SIZE;
-        
+
         int realRead = readSram(pData + i, readSize);
+
         if (realRead != readSize)
         {
             printf(
                     "readFlash() !! Try to read %d bytes, but only read %d bytes.\n",
                     readSize, realRead);
         }
-		
-        }
-   printf("[");
-   for (int i = 0; i < dataSize; i+=2)
-   {
-	   short value = pData[i]|(pData[i+1]<<8);
-	   if(i%((NumDrive+1)*2)==0 && i>0)
-		  printf("\n"); 
-	   printf("%2d,", value);
-	   
-   }
-	printf("]");	
-	mRegAccessor->writeRegister(IO_BANK, 0x0A, 0x01);
-	delete [] pData;
+    }
+    printf("[");
+    for (int i = 0; i < dataSize; i+=2)
+    {
+        short value = pData[i]|(pData[i+1]<<8);
+        if(i%((NumDrive+1)*2)==0 && i>0)
+            printf("\n"); 
+        printf("%2d,", value);
+        
+    }
+    printf("]");	
+    mRegAccessor->writeRegister(IO_BANK, 0x0A, 0x01);
+    delete [] pData;
 }

@@ -136,13 +136,13 @@ void Pjp274FwUpdater::releaseParameterBin()
 
 bool Pjp274FwUpdater::loadUpgradeBin(char const* path)
 {
-    static const int UPGRADE_FILE_SIZE = 61440 + 4096 ;
+    static const int UPGRADE_FILE_SIZE = 57344 + 4096; // PJP274 Flash block 60kB (firmware 56kB + parameter 4kB)
     printf("Upgrade file path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
     ifs.unsetf(std::ios::skipws);
     int size = ifs.tellg();
    
-   if (size > UPGRADE_FILE_SIZE)
+    if (size > UPGRADE_FILE_SIZE)
     {
         printf("File size too large. (%d > %d)\n", size, UPGRADE_FILE_SIZE);
         return false;
@@ -151,15 +151,15 @@ bool Pjp274FwUpdater::loadUpgradeBin(char const* path)
     ifs.seekg(0, ios::beg);
     // Read code.
     mTargetFirmware.clear();
-    mTargetFirmware.reserve(45056);
-    copy_n(istream_iterator<byte>(ifs), 45056,
+    mTargetFirmware.reserve(57344);
+    copy_n(istream_iterator<byte>(ifs), 57344,
             std::back_inserter(mTargetFirmware));
     // Read parameters.
     mTargetParameter.clear();
     mTargetParameter.reserve(4096);
     std::copy_n(istream_iterator<byte>(ifs), 4096,
             std::back_inserter(mTargetParameter));
-
+    ifs.close();
     return true;
 }
 
@@ -167,7 +167,6 @@ void Pjp274FwUpdater::releaseUpgradeBin()
 {
     this->releaseFwBin();
     this->releaseParameterBin();
-   
 }
 
 uint32_t Pjp274FwUpdater::calCheckSum(byte const * const array, int length)
@@ -220,18 +219,36 @@ int Pjp274FwUpdater::getReadUserRegister(byte bank,byte addr)
 
 bool Pjp274FwUpdater::fullyUpgrade()
 {
-   if (mTargetFirmware.size() <= 0)
+    // 1. Make sure upgrade binaries are ready.
+    if (mTargetFirmware.size() <= 0)
         return false;
-    int res;
-    bool erase = true;
+    if (mTargetParameter.size() <= 0)
+        return false;
+
+    // 2. Enter engineer mode.
     mFlashCtrlr->enterEngineerMode();
 
-    
-    res = mFlashCtrlr->writeFlash(mTargetFirmware.data(),
+    // 3. Erase 1 page to broke firmware first.
+    bool res = mFlashCtrlr->erase(Pjp274FlashCtrlr::FIRMWARE_START_PAGE, 1);
+    if (!res)
+    {
+        printf("Erase firmware failed.");
+        return false;
+    }
+
+    // 4. Update parameter.
+    int resPara = mFlashCtrlr->writeFlash(mTargetParameter.data(),
+            mTargetParameter.size(), Pjp274FlashCtrlr::PARAMETER_START_PAGE,
+            true);
+
+    // 5. Update firmware.
+    int resFW = mFlashCtrlr->writeFlash(mTargetFirmware.data(),
             mTargetFirmware.size(), Pjp274FlashCtrlr::FIRMWARE_START_PAGE,
-            erase);
+            true);
+    
+    // 6. Exit engineer mode.
     mFlashCtrlr->exitEngineerMode();
-    printf("writeFirmware() result: %d\n", res);
+    printf("writeFirmware() result: %d, writeParameter() result: %d\n", resFW, resPara);
     return true;
 }
 
@@ -264,17 +281,15 @@ void Pjp274FwUpdater::writeParameter()
 
 void Pjp274FwUpdater::ReadFrameData()
 {
-     while(1)
-     {	
-     mFlashCtrlr->readFrame();
-     usleep(10);
-     }
+    while(1)
+    {	
+        mFlashCtrlr->readFrame();
+        usleep(10);
+    }
 }
 
 void Pjp274FwUpdater::ReadBatchUserRegister(byte bank, int length,bool AutoRead)
 {
-    
-    
     mFlashCtrlr->readUserRegisterBatch(bank,length,AutoRead);
     if(AutoRead==false)
       return;
@@ -282,8 +297,7 @@ void Pjp274FwUpdater::ReadBatchUserRegister(byte bank, int length,bool AutoRead)
     {	
        mFlashCtrlr->readUserRegisterBatch(bank,length,AutoRead);
        usleep(100);
-    }  
-     
+    }
 }
 
 void Pjp274FwUpdater::ReadBatchSysRegister(byte bank, int length,bool AutoRead)
@@ -303,6 +317,7 @@ void Pjp274FwUpdater::writeRegister(byte bank,byte addr,byte value)
 {
 	mFlashCtrlr->writeRegister(bank,addr,value);
 }
+
 void Pjp274FwUpdater::writeUserRegister(byte bank,byte addr,byte value)
 {
 	mFlashCtrlr->writeUserRegister(bank,addr,value);

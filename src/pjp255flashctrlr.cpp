@@ -468,25 +468,24 @@ void pjp255FlashCtrlr::writeUserRegister(byte bank,byte addr,byte value)
 }
 void pjp255FlashCtrlr::readFrame(void)
 {
-      
-        mRegAccessor->writeUserRegister(2,0x7,0x10);
-        byte NumDrive = mRegAccessor->readRegister(9, 0x01);
+    mRegAccessor->writeUserRegister(2,0x7,0x10);
+    byte NumDrive = mRegAccessor->readRegister(9, 0x01);
 	byte NumSense = mRegAccessor->readRegister(9, 0x02);
 	mRegAccessor->writeRegister(IO_BANK, 0x0E, NumDrive);
-        mRegAccessor->writeRegister(IO_BANK, 0x0F, NumSense);
+    mRegAccessor->writeRegister(IO_BANK, 0x0F, NumSense);
 	mRegAccessor->writeRegister(IO_BANK, 0x08, 0x00);
 	mRegAccessor->writeRegister(IO_BANK, 0x09, 0x05);
 	mRegAccessor->writeRegister(IO_BANK, 0x0A, 0x00);
 	mRegAccessor->writeRegister(4, 0x1c, 0);
-        mRegAccessor->writeRegister(4, 0x1d, 0);
+    mRegAccessor->writeRegister(4, 0x1d, 0);
         
 	bool res ;
-        int readLength = 0;
+    int readLength = 0;
 	int dataSize = (NumDrive+1)*(NumSense+1)*2;
 	byte* pData = new byte[dataSize];
-        printf("\n NumDrive=%d,NumSense=%d,dataSize=%d\n,",NumDrive,NumSense,dataSize);
+    printf("\n NumDrive=%d,NumSense=%d,dataSize=%d\n,",NumDrive,NumSense,dataSize);
 	for (int i = 0; i < dataSize; i += SRAM_BURST_SIZE)
-        {
+    {
         int remainedSize = dataSize - i;
         int readSize =
                 remainedSize < SRAM_BURST_SIZE ? remainedSize : SRAM_BURST_SIZE;
@@ -498,8 +497,7 @@ void pjp255FlashCtrlr::readFrame(void)
                     "readFlash() !! Try to read %d bytes, but only read %d bytes.\n",
                     readSize, realRead);
         }
-		
-        }
+    }
    printf("[");
    for (int i = 0; i < dataSize; i+=2)
    {

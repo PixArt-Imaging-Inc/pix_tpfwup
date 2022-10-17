@@ -19,8 +19,8 @@ using namespace std;
 using namespace pixart;
 
 #define TITLE       "Pixart Touchpad Utility"
-#define VERSION      000003
-#define VERSION_STR "v0.0.3"
+#define VERSION      000005
+#define VERSION_STR "v0.0.5"
 
 int main(int argc, char **argv)
 {
@@ -43,15 +43,16 @@ int main(int argc, char **argv)
     HidDevHelper devHelper(&hiddev);
 	
     Pjp274RegAccr regAccr_(&hiddev);
-    Pjp274FwUpdater fwUpdater_(&devHelper, &regAccr_);
-    int IC_type = fwUpdater_.getICType();
-    printf("IC Type: %04x\n",IC_type);
+    Pjp274FwUpdater fwUpdater_274(&devHelper, &regAccr_);
 
     Plp239RegAccr regAccr(&hiddev);
-    Plp239FwUpdater fwUpdater(&devHelper, &regAccr);
+    Plp239FwUpdater fwUpdater_239(&devHelper, &regAccr);
     //add by shawn
     pjp255RegAccr _regAccr(&hiddev);
-    pjp255FwUpdater _fwUpdater(&devHelper, &_regAccr);
+    pjp255FwUpdater fwUpdater_255(&devHelper, &_regAccr);
+
+    int IC_type = fwUpdater_274.getICType();
+    printf("IC Type: %04x\n",IC_type);
 
     if (argc > 2)
     {
@@ -61,12 +62,14 @@ int main(int argc, char **argv)
             if (param == "reset_hw")
             {
                 printf("=== Reset to HW Test Mode + ===\n");
-		        if (IC_type==0x239)
-                    res = fwUpdater.reset(Plp239FwUpdater::ResetType::HwTestMode);
-		        else if (IC_type==0x274)
-		            res = fwUpdater_.reset(Pjp274FwUpdater::ResetType::HwTestMode);
-                else 
-                    res = _fwUpdater.reset(pjp255FwUpdater::ResetType::HwTestMode);
+                if (IC_type==0x239)
+                    res = fwUpdater_239.reset(Plp239FwUpdater::ResetType::HwTestMode);
+                else if (IC_type==0x274)
+                    res = fwUpdater_274.reset(Pjp274FwUpdater::ResetType::HwTestMode);
+                else if (IC_type==0x255)
+                    res = fwUpdater_255.reset(pjp255FwUpdater::ResetType::HwTestMode);
+                else
+                    printf("=== Not support %04x ===\n",IC_type);
 
                 break;
             }
@@ -74,11 +77,13 @@ int main(int argc, char **argv)
             {
                 printf("=== Reset to Regular Mode + ===\n");
 		        if (IC_type==0x239)
-                    res = fwUpdater.reset(Plp239FwUpdater::ResetType::Regular);
+                    res = fwUpdater_239.reset(Plp239FwUpdater::ResetType::Regular);
 		        else if (IC_type==0x274)
-		            res = fwUpdater_.reset(Pjp274FwUpdater::ResetType::Regular);
+		            res = fwUpdater_274.reset(Pjp274FwUpdater::ResetType::Regular);
+                else if (IC_type==0x255)
+                    res = fwUpdater_255.reset(pjp255FwUpdater::ResetType::Regular);
                 else
-                    res = _fwUpdater.reset(pjp255FwUpdater::ResetType::Regular);
+                    printf("=== Not support %04x ===\n",IC_type);
 
                 break;
             }
@@ -93,11 +98,13 @@ int main(int argc, char **argv)
             {
 		        int fwVer;
                 if (IC_type==0x239)
-		            fwVer = fwUpdater.getFwVersion();
+		            fwVer = fwUpdater_239.getFwVersion();
 		        else if (IC_type==0x274)
-		            fwVer = fwUpdater_.getFwVersion();
-                else 
-                    fwVer = _fwUpdater.getFwVersion();
+		            fwVer = fwUpdater_274.getFwVersion();
+                else if (IC_type==0x255)
+                    fwVer = fwUpdater_255.getFwVersion();
+                else
+                    printf("=== Not support %04x ===\n",IC_type);
 			
                 printf("Firmware Version: %04x\n", fwVer);
                 break;
@@ -106,11 +113,13 @@ int main(int argc, char **argv)
             {
 		        //int fwVer;
                 if (IC_type==0x239)
-		            ;//fwVer = fwUpdater.getFwVersion();
+		            printf("=== %04x doesn't support this command===\n",IC_type);
 		        else if (IC_type==0x274)
-		            fwUpdater_.ReadFrameData();
-                else 
-                    _fwUpdater.ReadFrameData();
+		            fwUpdater_274.ReadFrameData();
+                else if (IC_type==0x255)
+                    fwUpdater_255.ReadFrameData();
+                else
+                    printf("=== Not support %04x ===\n",IC_type);
 			
                 printf("Get frame data\n");
                 break;
@@ -121,13 +130,23 @@ int main(int argc, char **argv)
 		        int addr =  atoi(argv[++i]);
 		        int value;
 		        if (IC_type==0x239)
-		            value = fwUpdater.getReadSysRegister(bank,addr);
+                {
+		            value = fwUpdater_239.getReadSysRegister(bank,addr);
+                    printf("sys bank= %02x, addr= %02x, vaule %04x\n",bank,addr,value);
+                }
 		        else if (IC_type==0x274)
-		            value = fwUpdater_.getReadSysRegister(bank,addr);
+                {
+		            value = fwUpdater_274.getReadSysRegister(bank,addr);
+                    printf("sys bank= %02x, addr= %02x, vaule %04x\n",bank,addr,value);
+                }
+                else if (IC_type==0x255)
+                {
+                    value = fwUpdater_255.getReadSysRegister(bank,addr);
+                    printf("sys bank= %02x, addr= %02x, vaule %04x\n",bank,addr,value);
+                }
                 else
-                    value = _fwUpdater.getReadSysRegister(bank,addr);
+                    printf("=== Not support %04x ===\n",IC_type);
 
-		        printf("sys bank= %02x, addr= %02x, vaule %04x\n",bank,addr,value);
 	        }
 	        else if (param == "read_user_bank")
 	        {
@@ -135,13 +154,22 @@ int main(int argc, char **argv)
 		        int addr =  atoi(argv[++i]);
 		        int value;
 		        if (IC_type==0x239)
-		            value = fwUpdater.getReadUserRegister(bank,addr);
+                {
+		            value = fwUpdater_239.getReadUserRegister(bank,addr);
+                    printf("user bank= %02x, addr= %02x, vaule %02x\n",bank,addr,value);
+                }
 		        else if (IC_type==0x274)
-		            value = fwUpdater_.getReadUserRegister(bank,addr);			
+                {
+		            value = fwUpdater_274.getReadUserRegister(bank,addr);
+                    printf("user bank= %02x, addr= %02x, vaule %02x\n",bank,addr,value);
+                }
+                else if (IC_type==0x255)
+                {
+                    value = fwUpdater_255.getReadUserRegister(bank,addr);
+                    printf("user bank= %02x, addr= %02x, vaule %02x\n",bank,addr,value);
+                }
                 else
-                    value = _fwUpdater.getReadUserRegister(bank,addr);		
-
-		        printf("user bank= %02x, addr= %02x, vaule %02x\n",bank,addr,value);				
+                    printf("=== Not support %04x ===\n",IC_type);
 	        }
  	        else if (param == "write_sys_bank")
 	        {
@@ -149,11 +177,13 @@ int main(int argc, char **argv)
 		        int addr =  atoi(argv[++i]);
 		        int value =  atoi(argv[++i]);;
 		        if (IC_type==0x239)
-		            ;//value = fwUpdater.getReadSysRegister(bank,addr);
+                    printf("=== %04x doesn't support this command===\n",IC_type);
 		        else if (IC_type==0x274)
-		            fwUpdater_.writeRegister(bank,addr,value);
+		            fwUpdater_274.writeRegister(bank,addr,value);
+                else if (IC_type==0x255)
+                   fwUpdater_255.writeRegister(bank,addr,value);
                 else
-                   _fwUpdater.writeRegister(bank,addr,value);
+                    printf("=== Not support %04x ===\n",IC_type);
 
 		        printf("write sys bank= %02x, addr= %02x, vaule %04x\n",bank,addr,value);
 	        }
@@ -163,11 +193,13 @@ int main(int argc, char **argv)
 		        int addr =  atoi(argv[++i]);
 		        int value =  atoi(argv[++i]);;
 		        if (IC_type==0x239)
-		            ;//value = fwUpdater.getReadUserRegister(bank,addr);
+                    printf("=== %04x doesn't support this command===\n",IC_type);
 		        else if (IC_type==0x274)
-		            fwUpdater_.writeUserRegister(bank,addr,value);			
+		            fwUpdater_274.writeUserRegister(bank,addr,value);			
+                else if (IC_type==0x255)
+                    fwUpdater_255.writeUserRegister(bank,addr,value);
                 else
-                    _fwUpdater.writeUserRegister(bank,addr,value);	
+                    printf("=== Not support %04x ===\n",IC_type);
 
 		        printf("write user bank= %02x, addr= %02x, vaule %02x\n",bank,addr,value);				
 	      }
@@ -177,13 +209,13 @@ int main(int argc, char **argv)
 		    int len =  atoi(argv[++i]);
 		    bool AutoRead =  atoi(argv[++i]);
 		    if (IC_type==0x239)
-		        ;//value = fwUpdater.getReadSysRegister(bank,addr);
+                printf("=== %04x doesn't support this command===\n",IC_type);
 		    else if (IC_type==0x274)
-		        fwUpdater_.ReadBatchSysRegister(bank,len,AutoRead);
-            else 
-                _fwUpdater.ReadBatchSysRegister(bank,len,AutoRead);
-
-		    //printf("sys bank= %02x, addr= %02x, vaule %04x\n",bank,addr,value);
+		        fwUpdater_274.ReadBatchSysRegister(bank,len,AutoRead);
+            else if (IC_type==0x255)
+                fwUpdater_255.ReadBatchSysRegister(bank,len,AutoRead);
+            else
+                printf("=== Not support %04x ===\n",IC_type);
 	     }
 	     else if (param == "read_user_bank_batch")
 	     {
@@ -191,13 +223,13 @@ int main(int argc, char **argv)
 		    int len =  atoi(argv[++i]);
 		    bool AutoRead =  atoi(argv[++i]);
 		    if (IC_type==0x239)
-		        ;//value = fwUpdater.getReadUserRegister(bank,addr);
+		        printf("=== %04x doesn't support this command===\n",IC_type);
 		    else if (IC_type==0x274)
-		        fwUpdater_.ReadBatchUserRegister(bank,len,AutoRead);			
-            else 
-                _fwUpdater.ReadBatchUserRegister(bank,len,AutoRead);
-
-		    //printf("user bank= %02x, addr= %02x, vaule %02x\n",bank,addr,value);				
+		        fwUpdater_274.ReadBatchUserRegister(bank,len,AutoRead);			
+            else if (IC_type==0x255)
+                fwUpdater_255.ReadBatchUserRegister(bank,len,AutoRead);
+            else
+                printf("=== Not support %04x ===\n",IC_type);			
 	     }
          else if (param == "update_fw")
          {
@@ -211,32 +243,36 @@ int main(int argc, char **argv)
 
 		    if (IC_type==0x239)
 		    {
-		        res = fwUpdater.loadFwBin(fwPath.c_str());
+		        res = fwUpdater_239.loadFwBin(fwPath.c_str());
 		        printf("Read firmware file, res = %d\n", res);
-		        fwUpdater.writeFirmware();
-		        fwUpdater.releaseFwBin();
-                res = fwUpdater.reset(Plp239FwUpdater::ResetType::Regular);
+		        fwUpdater_239.writeFirmware();
+		        fwUpdater_239.releaseFwBin();
+                res = fwUpdater_239.reset(Plp239FwUpdater::ResetType::Regular);
                 if (!res) printf("\tReset failed.\n");
 		    }
 		    else if (IC_type==0x274)
 		    {
-		        res = fwUpdater_.loadFwBin(fwPath.c_str());
+		        res = fwUpdater_274.loadFwBin(fwPath.c_str());
 		        printf("Read firmware file, res = %d\n", res);
-		        fwUpdater_.writeFirmware();
-		        fwUpdater_.releaseFwBin();	
-                res = fwUpdater_.reset(Pjp274FwUpdater::ResetType::Regular);
+		        fwUpdater_274.writeFirmware();
+		        fwUpdater_274.releaseFwBin();	
+                res = fwUpdater_274.reset(Pjp274FwUpdater::ResetType::Regular);
                 if (!res) printf("\tReset failed.\n");					
 		    }
-            else 
+            else if (IC_type==0x255)
             {
-                res = _fwUpdater.loadFwBin(fwPath.c_str());
+                res = fwUpdater_255.loadFwBin(fwPath.c_str());
 		        printf("Read firmware file, res = %d\n", res);
-		        _fwUpdater.writeFirmware();
-                //_fwUpdater.get_calchecksum(false);
-		        _fwUpdater.releaseFwBin();		
-                res = _fwUpdater.reset(pjp255FwUpdater::ResetType::Regular);	
+		        fwUpdater_255.writeFirmware();
+                //fwUpdater_255.get_calchecksum(false);
+		        fwUpdater_255.releaseFwBin();		
+                res = fwUpdater_255.reset(pjp255FwUpdater::ResetType::Regular);	
                 if (!res) printf("\tReset failed.\n");
-                //_fwUpdater.GetChipCodeCCRC(false);
+                //fwUpdater_255.GetChipCodeCCRC(false);
+            }
+            else
+            {
+                printf("=== Not support %04x ===\n",IC_type);
             }
 
             
@@ -254,11 +290,15 @@ int main(int argc, char **argv)
 		
             if (IC_type==0x239)
 		    {
-			    res = fwUpdater.loadHidDescFile(path.c_str());
+			    res = fwUpdater_239.loadHidDescFile(path.c_str());
 			    printf("Read firmware file, res = %d\n", res);
-			    fwUpdater.writeHidDesc();
-			    fwUpdater.releaseHidDescBin();
+			    fwUpdater_239.writeHidDesc();
+			    fwUpdater_239.releaseHidDescBin();
 		    }
+            else
+            {
+                printf("=== Not support %04x ===\n",IC_type);
+            }
 				
             break;
         }
@@ -275,25 +315,29 @@ int main(int argc, char **argv)
 
 		    if (IC_type==0x239)
 		    {
-                bool res = fwUpdater.loadParameterFile(path.c_str());
+                bool res = fwUpdater_239.loadParameterFile(path.c_str());
 			    printf("Read parameter file, res = %d\n", res);
-			    fwUpdater.writeParameter();
-			    fwUpdater.releaseParameterBin();
+			    fwUpdater_239.writeParameter();
+			    fwUpdater_239.releaseParameterBin();
 		    }
+            else
+            {
+                printf("=== Not support %04x ===\n",IC_type);
+            }
             /*
             else if (IC_type==0x274)
             {
-                bool res = fwUpdater_.loadParameterFile(path.c_str());
+                bool res = fwUpdater_274.loadParameterFile(path.c_str());
 			    printf("Read parameter file, res = %d\n", res);
-                fwUpdater_.writeParameter();
-			    fwUpdater_.releaseParameterBin();
+                fwUpdater_274.writeParameter();
+			    fwUpdater_274.releaseParameterBin();
             }
             else 
             { //IC_type255 
-                bool res = _fwUpdater.loadParameterFile(path.c_str());
+                bool res = fwUpdater_255.loadParameterFile(path.c_str());
 			    printf("Read parameter file, res = %d\n", res);
-                _fwUpdater.writeParameter();
-			    _fwUpdater.releaseParameterBin();
+                fwUpdater_255.writeParameter();
+			    fwUpdater_255.releaseParameterBin();
             }
             */
             break;
@@ -316,7 +360,7 @@ int main(int argc, char **argv)
             else if (option=="3")
                  type=pjp255FlashCtrlr::CRCType::DEF_PAR_CRC;
 
-            if (IC_type==0x255) _fwUpdater.GetChipCRC(type);
+            if (IC_type==0x255) fwUpdater_255.GetChipCRC(type);
         }    
         else if (param == "up")
         {
@@ -327,28 +371,19 @@ int main(int argc, char **argv)
                 break;
             }
 
-            /*Compal patch*/
-            string fwPath = argv[++i];
-            if (IC_type==0x274)
-		    {
-		        res = fwUpdater_.loadFwBin(fwPath.c_str());
-		        printf("Read firmware file, res = %d\n", res);
-		        fwUpdater_.writeFirmware();
-		        fwUpdater_.releaseFwBin();	
-                res = fwUpdater_.reset(Pjp274FwUpdater::ResetType::Regular);
-                if (!res) printf("\tReset failed.\n");
-                break;				
-		    }
-            /*Compal patch*/
-
             printf("=== Reset to HW Mode ===\n");
 
-		    if (IC_type==0x239)
-                res = fwUpdater.reset(Plp239FwUpdater::ResetType::HwTestMode);
-		    else if (IC_type==0x274)
-		        res = fwUpdater_.reset(Pjp274FwUpdater::ResetType::HwTestMode);
-            else 
-                res = _fwUpdater.reset(pjp255FwUpdater::ResetType::HwTestMode);
+		    if (IC_type == 0x239)
+                res = fwUpdater_239.reset(Plp239FwUpdater::ResetType::HwTestMode);
+		    else if (IC_type == 0x274)
+		        res = fwUpdater_274.reset(Pjp274FwUpdater::ResetType::HwTestMode);
+            else if (IC_type == 0x255)
+                res = fwUpdater_255.reset(pjp255FwUpdater::ResetType::HwTestMode);
+            else
+            {
+                printf("=== Not support %04x ===\n",IC_type);
+                break;
+            }
 
 
             if (!res)
@@ -359,12 +394,14 @@ int main(int argc, char **argv)
             printf("=== Start upgrade ===\n");
             string path = argv[i + 1];
 
-		    if (IC_type==0x239)
-                res = fwUpdater.loadUpgradeBin(path.c_str());
-		    else if (IC_type==0x274)
-		        res = fwUpdater_.loadUpgradeBin(path.c_str());	
-            else 
-                res = _fwUpdater.loadUpgradeBin(path.c_str());	
+		    if (IC_type == 0x239)
+                res = fwUpdater_239.loadUpgradeBin(path.c_str());
+		    else if (IC_type == 0x274)
+		        res = fwUpdater_274.loadUpgradeBin(path.c_str());	
+            else if (IC_type == 0x255)
+                res = fwUpdater_255.loadUpgradeBin(path.c_str());
+            else
+                printf("=== Not support %04x ===\n",IC_type);	
              
 
             printf("Read upgrade file, res = %d\n", res);
@@ -375,15 +412,22 @@ int main(int argc, char **argv)
             }
         
 		    if (IC_type==0x239)
-                res = fwUpdater.fullyUpgrade();
+                res = fwUpdater_239.fullyUpgrade();
 		    else if (IC_type==0x274)
-		        res = fwUpdater_.fullyUpgrade();	
-            else 
             {
-                res = _fwUpdater.fullyUpgrade();
-                _fwUpdater.releaseFwBin();
-                _fwUpdater.releaseParameterBin();
+		        res = fwUpdater_274.fullyUpgrade();	
+                fwUpdater_274.releaseFwBin();
+                fwUpdater_274.releaseParameterBin();
             }
+            else if (IC_type==0x255)
+            {
+                res = fwUpdater_255.fullyUpgrade();
+                fwUpdater_255.releaseFwBin();
+                fwUpdater_255.releaseParameterBin();
+            }
+            else
+                printf("=== Not support %04x ===\n",IC_type);
+
 		    if (!res)
             {
                 printf("\tFailed to upgrade.\n");
@@ -391,12 +435,14 @@ int main(int argc, char **argv)
             }
             printf("=== Reset to Regular Mode ===\n");
 
-		    if (IC_type==0x239)
-                res = fwUpdater.reset(Plp239FwUpdater::ResetType::Regular);
-		    else if (IC_type==0x274)		                        
-                res = fwUpdater_.reset(Pjp274FwUpdater::ResetType::Regular);	
+		    if (IC_type == 0x239)
+                res = fwUpdater_239.reset(Plp239FwUpdater::ResetType::Regular);
+		    else if (IC_type == 0x274)		                        
+                res = fwUpdater_274.reset(Pjp274FwUpdater::ResetType::Regular);	
+            else if (IC_type == 0x255)
+                res = fwUpdater_255.reset(pjp255FwUpdater::ResetType::Regular);
             else
-                res = _fwUpdater.reset(pjp255FwUpdater::ResetType::Regular);
+                printf("=== Not support %04x ===\n",IC_type);
 
             if (!res)
             {
@@ -407,13 +453,13 @@ int main(int argc, char **argv)
             if (IC_type==0x255)
             {
                 printf("=== The related information reports after bin file updated===\n");
-                _fwUpdater.GetChipCRC(pjp255FlashCtrlr::CRCType::FW_CRC);    
-                _fwUpdater.GetChipCRC(pjp255FlashCtrlr::CRCType::PAR_CRC); 
-                _fwUpdater.GetChipCRC(pjp255FlashCtrlr::CRCType::DEF_FW_CRC); 
-                _fwUpdater.GetChipCRC(pjp255FlashCtrlr::CRCType::DEF_PAR_CRC); 
-                byte ret_data = _fwUpdater.getHidFwVersion();
+                fwUpdater_255.GetChipCRC(pjp255FlashCtrlr::CRCType::FW_CRC);    
+                fwUpdater_255.GetChipCRC(pjp255FlashCtrlr::CRCType::PAR_CRC); 
+                fwUpdater_255.GetChipCRC(pjp255FlashCtrlr::CRCType::DEF_FW_CRC); 
+                fwUpdater_255.GetChipCRC(pjp255FlashCtrlr::CRCType::DEF_PAR_CRC); 
+                byte ret_data = fwUpdater_255.getHidFwVersion();
                 printf("The firmware version is %d\n",ret_data);
-                ret_data = _fwUpdater.getHidParversion();
+                ret_data = fwUpdater_255.getHidParversion();
                 printf("The parameter version is %d\n",ret_data);
             }
         }
