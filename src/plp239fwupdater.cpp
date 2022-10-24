@@ -812,7 +812,12 @@ void Plp239FwUpdater::releaseHidDescBin()
 {
     mTargetHidDesc.clear();
 }
-
+int Plp239FwUpdater::getPid()
+{
+    int pid = 0;
+    pid = mDevHelper->getPid();
+    return pid;
+}
 int Plp239FwUpdater::getFwVersion()
 {
     int fwVer;

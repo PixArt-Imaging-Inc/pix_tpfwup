@@ -59,6 +59,7 @@ namespace pixart
         bool loadParameterFile(char const* path);
         /**********/
         int getICType();
+        int getPid();
         int getFwVersion();
         bool fullyUpgrade();
         void writeFirmware(bool erase = true);

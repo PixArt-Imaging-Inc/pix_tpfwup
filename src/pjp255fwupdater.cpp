@@ -216,7 +216,12 @@ int pjp255FwUpdater::getICType()
 }
 
 
-
+int pjp255FwUpdater::getPid()
+{
+    int pid = 0;
+    pid = mDevHelper->getPid();
+    return pid;
+}
 int pjp255FwUpdater::getFwVersion()
 {
     int fwVer;

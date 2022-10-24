@@ -94,13 +94,32 @@ int main(int argc, char **argv)
                 printf("%s", rptDesc->toString().c_str());
                 break;
             }
+            else if (param == "get_pid")
+            {
+                int pid = 0;
+
+                if (IC_type == 0x239)
+                    pid = fwUpdater_239.getPid();
+                else if (IC_type == 0x274)
+                    pid = fwUpdater_274.getPid();
+                else if (IC_type == 0x255)
+                    pid = fwUpdater_255.getPid();
+                else
+                {
+                    printf("=== Not support %04x ===\n",IC_type);
+                    break;
+                }
+
+                printf("PID: %04x\n", pid);
+                break;
+            }
             else if (param == "get_fwver")
             {
-		        int fwVer;
+                int fwVer = 0;
                 if (IC_type == 0x239)
-		            fwVer = fwUpdater_239.getFwVersion();
-		        else if (IC_type == 0x274)
-		            fwVer = fwUpdater_274.getFwVersion();
+                    fwVer = fwUpdater_239.getFwVersion();
+                else if (IC_type == 0x274)
+                    fwVer = fwUpdater_274.getFwVersion();
                 else if (IC_type == 0x255)
                     fwVer = fwUpdater_255.getFwVersion();
                 else
@@ -108,7 +127,7 @@ int main(int argc, char **argv)
                     printf("=== Not support %04x ===\n",IC_type);
                     break;
                 }
-			
+
                 printf("Firmware Version: %04x\n", fwVer);
                 break;
             }

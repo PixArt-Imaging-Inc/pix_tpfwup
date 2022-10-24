@@ -129,6 +129,7 @@ namespace pixart
         bool loadHidDescFile(char const* path);
         /**********/
 
+        int getPid();
         int getFwVersion();
         bool fullyUpgrade();
         void writeFirmware(bool erase = true);

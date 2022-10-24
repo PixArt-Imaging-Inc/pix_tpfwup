@@ -195,7 +195,12 @@ int Pjp274FwUpdater::getICType()
     IcType = (IcType << 8) | mRegAccr->readRegister(0, 0x78);
     return IcType;
 }
-
+int Pjp274FwUpdater::getPid()
+{
+    int pid = 0;
+    pid = mDevHelper->getPid();
+    return pid;
+}
 int Pjp274FwUpdater::getFwVersion()
 {
     int fwVer;
