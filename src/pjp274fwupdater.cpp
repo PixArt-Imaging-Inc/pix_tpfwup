@@ -102,7 +102,7 @@ bool loadBin2Vec_(ifstream &ifs, vector<byte> &vec)
 
 bool Pjp274FwUpdater::loadFwBin(const char * path)
 {
-    bool ret;
+    bool ret = 1;
     printf("Binary path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
     loadBin2Vec_(ifs, mTargetFirmware);
@@ -112,7 +112,7 @@ bool Pjp274FwUpdater::loadFwBin(const char * path)
 
 bool Pjp274FwUpdater::loadParameterBin(const char * path)
 {
-    bool ret;
+    bool ret = 1;
     printf("Binary path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
     loadBin2Vec_(ifs, mTargetParameter);

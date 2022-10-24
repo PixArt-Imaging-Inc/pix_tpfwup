@@ -353,7 +353,6 @@ bool Plp239FwUpdater::insertParamHeader(uint32_t ver, int len, long crc)
      * PARAMETER
      *  BYTE[USER_PARAM_SIZE]
      **/
-    int headerSize = 2 + 2 + 4 + 4 + 3 + 1;
     vector<byte> header;
     // Parameter Size
     header.push_back(USER_PARAM_SIZE & 0xff);
@@ -523,7 +522,7 @@ bool loadBin2Vec(ifstream &ifs, vector<byte> &vec)
 
 bool Plp239FwUpdater::loadFwBin(const char * path)
 {
-    bool ret;
+    bool ret = 1;
     printf("Binary path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
     loadBin2Vec(ifs, mTargetFirmware);
@@ -533,7 +532,7 @@ bool Plp239FwUpdater::loadFwBin(const char * path)
 
 bool Plp239FwUpdater::loadParameterBin(const char * path)
 {
-    bool ret;
+    bool ret = 1;
     printf("Binary path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
     loadBin2Vec(ifs, mTargetParameter);
@@ -543,7 +542,7 @@ bool Plp239FwUpdater::loadParameterBin(const char * path)
 
 bool Plp239FwUpdater::loadHidDescBin(const char * path)
 {
-    bool ret;
+    bool ret = 1;
     printf("Binary path: %s\n", path);
     ifstream ifs(path, ifstream::in | ios::ate);
     loadBin2Vec(ifs, mTargetHidDesc);
@@ -565,7 +564,7 @@ bool Plp239FwUpdater::loadHidDescFile(char const* path)
 
     uint32_t version = 0;
     int lengthFromFile = -1;
-    long crcFromFile = -1;
+    int64_t crcFromFile = -1;
 
     regex verP("Version:\\s*(\\d+).(\\d+).(\\d+).(\\d+)",
             regex_constants::icase);

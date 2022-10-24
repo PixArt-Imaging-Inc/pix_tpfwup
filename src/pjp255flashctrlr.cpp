@@ -114,7 +114,6 @@ bool pjp255FlashCtrlr::writeEnable()    // -----------------done
 bool pjp255FlashCtrlr::checkBusy()  // -----------------done
 {
    int retry = 0;
-   int retry1 = 0;
    int value;
    while(true)
    { 
@@ -479,8 +478,6 @@ void pjp255FlashCtrlr::readFrame(void)
 	mRegAccessor->writeRegister(4, 0x1c, 0);
     mRegAccessor->writeRegister(4, 0x1d, 0);
         
-	bool res ;
-    int readLength = 0;
 	int dataSize = (NumDrive+1)*(NumSense+1)*2;
 	byte* pData = new byte[dataSize];
     printf("\n NumDrive=%d,NumSense=%d,dataSize=%d\n,",NumDrive,NumSense,dataSize);

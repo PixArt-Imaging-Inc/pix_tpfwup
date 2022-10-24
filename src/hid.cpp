@@ -279,8 +279,6 @@ namespace pixart
             int prefixSize = prefix & 0x3;
 
             size = 1 + (prefixSize == HIDRD_ITEM_PFX_SIZE_4B ? 4 : prefixSize);
-            uint8_t type = (prefix >> HIDRD_ITEM_PFX_TYPE_SHFT) &
-            HIDRD_ITEM_PFX_TYPE_MASK;
 
             item = new ShortItem(buf, size);
         }

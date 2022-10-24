@@ -94,7 +94,6 @@ bool Pjp274FlashCtrlr::writeEnable()
 bool Pjp274FlashCtrlr::checkBusy()
 {
    int retry = 0;
-   int retry1 = 0;
    int value;
    while(true)
    {
@@ -442,8 +441,6 @@ void Pjp274FlashCtrlr::readFrame(void)
     mRegAccessor->writeRegister(4, 0x1c, 0);
     mRegAccessor->writeRegister(4, 0x1d, 0);
         
-    bool res ;
-    int readLength = 0;
     int dataSize = (NumDrive+1)*(NumSense+1)*2;
     byte* pData = new byte[dataSize];
     
