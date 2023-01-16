@@ -19,8 +19,8 @@ using namespace std;
 using namespace pixart;
 
 #define TITLE       "Pixart Touchpad Utility"
-#define VERSION      000006
-#define VERSION_STR "v0.0.6"
+#define VERSION      000007
+#define VERSION_STR "v0.0.7"
 
 int main(int argc, char **argv)
 {
@@ -490,10 +490,8 @@ int main(int argc, char **argv)
                     fwUpdater_255.GetChipCRC(pjp255FlashCtrlr::CRCType::PAR_CRC); 
                     fwUpdater_255.GetChipCRC(pjp255FlashCtrlr::CRCType::DEF_FW_CRC); 
                     fwUpdater_255.GetChipCRC(pjp255FlashCtrlr::CRCType::DEF_PAR_CRC); 
-                    byte ret_data = fwUpdater_255.getHidFwVersion();
-                    printf("The firmware version is %d\n",ret_data);
-                    ret_data = fwUpdater_255.getHidParversion();
-                    printf("The parameter version is %d\n",ret_data);
+                    int fwVer = fwUpdater_255.getFwVersion();
+                    printf("Firmware Version: %04x\n",fwVer);
                 }
             }
         }

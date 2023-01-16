@@ -225,8 +225,8 @@ int pjp255FwUpdater::getPid()
 int pjp255FwUpdater::getFwVersion()
 {
     int fwVer;
-    fwVer = mRegAccr->readuserRegister(0, 0xb3);
-    fwVer = (fwVer << 8) | mRegAccr->readuserRegister(0, 0xb2);
+    fwVer = mRegAccr->readuserRegister(0, 0x7f);
+    fwVer = (fwVer << 8) | mRegAccr->readuserRegister(0, 0x7e);
     return fwVer;
 }
 int pjp255FwUpdater::getReadSysRegister(byte bank,byte addr)
