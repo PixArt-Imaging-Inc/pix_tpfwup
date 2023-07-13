@@ -8,15 +8,17 @@ CXXFLAGS += -std=c++11 -Wall
 LDFLAGS ?= -g
 #LIBS = 
 
-all: dir $(APP)
+all: $(APP)
 
-dir:
+$(OUT):
 	mkdir -p $(OUT)
 
 $(APP): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ $(LIBS) -o $(APP)
 
-$(OBJS): $(OUT)/%.o: src/%.cpp
+$(OBJS): | $(OUT)
+
+$(OUT)/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
 clean:
