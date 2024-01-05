@@ -120,14 +120,10 @@ bool Pjp274FwUpdater::loadParameterBin(const char * path)
     return ret;
 }
 
-
-
 void Pjp274FwUpdater::releaseFwBin()
 {
     mTargetFirmware.clear();
 }
-
-
 
 void Pjp274FwUpdater::releaseParameterBin()
 {
@@ -187,7 +183,6 @@ uint32_t Pjp274FwUpdater::calCheckSum(byte const * const array, int length)
     return crc;
 }
 
-
 int Pjp274FwUpdater::getICType()
 {
     int IcType;
@@ -195,12 +190,14 @@ int Pjp274FwUpdater::getICType()
     IcType = (IcType << 8) | mRegAccr->readRegister(0, 0x78);
     return IcType;
 }
+
 int Pjp274FwUpdater::getPid()
 {
     int pid = 0;
     pid = mDevHelper->getPid();
     return pid;
 }
+
 int Pjp274FwUpdater::getFwVersion()
 {
     int fwVer;
@@ -208,6 +205,7 @@ int Pjp274FwUpdater::getFwVersion()
     fwVer = (fwVer << 8) | mRegAccr->readuserRegister(0, 0xb2);
     return fwVer;
 }
+
 int Pjp274FwUpdater::getReadSysRegister(byte bank,byte addr)
 {
     int value;
@@ -224,36 +222,51 @@ int Pjp274FwUpdater::getReadUserRegister(byte bank,byte addr)
 
 bool Pjp274FwUpdater::fullyUpgrade()
 {
-    // 1. Make sure upgrade binaries are ready.
     if (mTargetFirmware.size() <= 0)
+    {
+        printf("Load firmware size error.");
         return false;
+    }
     if (mTargetParameter.size() <= 0)
+    {
+        printf("Load parameter size error.");
         return false;
+    }
 
-    // 2. Enter engineer mode.
     mFlashCtrlr->enterEngineerMode();
 
-    // 3. Erase 1 page to broke firmware first.
     bool res = mFlashCtrlr->erase(Pjp274FlashCtrlr::FIRMWARE_START_PAGE, 1);
     if (!res)
     {
         printf("Erase firmware failed.");
+        mFlashCtrlr->exitEngineerMode();
         return false;
     }
 
-    // 4. Update parameter.
-    int resPara = mFlashCtrlr->writeFlash(mTargetParameter.data(),
-            mTargetParameter.size(), Pjp274FlashCtrlr::PARAMETER_START_PAGE,
-            true);
-
-    // 5. Update firmware.
-    int resFW = mFlashCtrlr->writeFlash(mTargetFirmware.data(),
-            mTargetFirmware.size(), Pjp274FlashCtrlr::FIRMWARE_START_PAGE,
-            true);
+    res = false;
+    res = mFlashCtrlr->writeFlash(mTargetParameter.data(),
+            mTargetParameter.size(), Pjp274FlashCtrlr::PARAMETER_START_PAGE, true);
     
-    // 6. Exit engineer mode.
+    if (!res)
+    {
+        printf("Update parameter failed.\n");
+        mFlashCtrlr->exitEngineerMode();
+        return false;
+    }
+
+    res = false;
+    res = mFlashCtrlr->writeFlash(mTargetFirmware.data(),
+            mTargetFirmware.size(), Pjp274FlashCtrlr::FIRMWARE_START_PAGE, true);
+
+    if (!res)
+    {
+        printf("Update firmware failed.\n");
+        mFlashCtrlr->exitEngineerMode();
+        return false;
+    }
+
     mFlashCtrlr->exitEngineerMode();
-    printf("writeFirmware() result: %d, writeParameter() result: %d\n", resFW, resPara);
+    printf("Update completed.\n");
     return true;
 }
 

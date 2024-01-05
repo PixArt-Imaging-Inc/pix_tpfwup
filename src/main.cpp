@@ -19,8 +19,7 @@ using namespace std;
 using namespace pixart;
 
 #define TITLE       "Pixart Touchpad Utility"
-#define VERSION      000009
-#define VERSION_STR "v0.0.9"
+#define VERSION_STR "v0.1.0"
 
 int main(int argc, char **argv)
 {
@@ -416,7 +415,7 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                printf("=== Reset to HW Mode ===\n");
+                printf("=== Reset to hardware mode ===\n");
 
                 if (IC_type == 0x239)
                     res = fwUpdater_239.reset(Plp239FwUpdater::ResetType::HwTestMode);
@@ -467,7 +466,7 @@ int main(int argc, char **argv)
 
                 if (IC_type == 0x239)
                     res = fwUpdater_239.reset(Plp239FwUpdater::ResetType::Regular);
-                else if (IC_type == 0x274)		                        
+                else if (IC_type == 0x274)
                     res = fwUpdater_274.reset(Pjp274FwUpdater::ResetType::Regular);	
                 else if (IC_type == 0x255)
                     res = fwUpdater_255.reset(pjp255FwUpdater::ResetType::Regular);

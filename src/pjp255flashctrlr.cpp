@@ -19,10 +19,10 @@ const int pjp255FlashCtrlr::FIRMWARE_START_PAGE = 0;
 const int pjp255FlashCtrlr::PARAMETER_START_PAGE = 224;
 
 const byte pjp255FlashCtrlr::IO_BANK = 2;
-const byte pjp255FlashCtrlr::FIRMWARE_CRC=0x02;
-const byte pjp255FlashCtrlr::PARAMETER_CRC=0x04;
-const byte pjp255FlashCtrlr::DEFAULT_FIRMWARE_CRC=0x10;
-const byte pjp255FlashCtrlr::DEFAULT_PARAMETER_CRC=0x20;
+const byte pjp255FlashCtrlr::FIRMWARE_CRC = 0x02;
+const byte pjp255FlashCtrlr::PARAMETER_CRC = 0x04;
+const byte pjp255FlashCtrlr::DEFAULT_FIRMWARE_CRC = 0x10;
+const byte pjp255FlashCtrlr::DEFAULT_PARAMETER_CRC = 0x20;
 
 /* HW SFC register address */
 

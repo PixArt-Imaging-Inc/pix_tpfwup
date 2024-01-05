@@ -36,24 +36,18 @@ pjp255FwUpdater::pjp255FwUpdater(DevHelper* devHelper,
     mFlashCtrlr = make_shared<pjp255FlashCtrlr>(mRegAccr);
 }
 
-
-
 bool pjp255FwUpdater::reset(ResetType type)
 {
     switch (type)
     {
-    case ResetType::Regular:
-    {
-       mFlashCtrlr->exitEngineerMode();
-    }
-        break;
-    case ResetType::HwTestMode:
-    {
-       mFlashCtrlr->enterEngineerMode();
-    }
-        break;
-    default:
-        return false;
+        case ResetType::Regular:
+            mFlashCtrlr->exitEngineerMode();
+            break;
+        case ResetType::HwTestMode:
+            mFlashCtrlr->enterEngineerMode();
+            break;
+        default:
+            return false;
     }
 
     return true;
@@ -120,8 +114,6 @@ bool pjp255FwUpdater::loadParameterBin(const char * path)
     return ret;
 }
 
-
-
 void pjp255FwUpdater::releaseFwBin()
 {
     mTargetFirmware.clear();
@@ -170,7 +162,6 @@ void pjp255FwUpdater::releaseUpgradeBin()
 {
     this->releaseFwBin();
     this->releaseParameterBin();
-   
 }
 
 uint32_t pjp255FwUpdater::calCheckSum(byte const * const array, int length)
@@ -194,7 +185,7 @@ uint32_t pjp255FwUpdater::calCheckSum(byte const * const array, int length)
 void pjp255FwUpdater::get_calchecksum(bool parameterpart)
 {
     uint32_t result=0;
-    if (parameterpart==false)
+    if (parameterpart == false)
     {
         result=calCheckSum(mTargetFirmware.data(), mTargetFirmware.size());    
     }
@@ -206,7 +197,6 @@ void pjp255FwUpdater::get_calchecksum(bool parameterpart)
     printf("The CRC content of input bin file is : 0x%8x\n", result);
 }
 
-
 int pjp255FwUpdater::getICType()
 {
     int IcType;
@@ -215,13 +205,13 @@ int pjp255FwUpdater::getICType()
     return IcType;
 }
 
-
 int pjp255FwUpdater::getPid()
 {
     int pid = 0;
     pid = mDevHelper->getPid();
     return pid;
 }
+
 int pjp255FwUpdater::getFwVersion()
 {
     int fwVer;
@@ -229,6 +219,7 @@ int pjp255FwUpdater::getFwVersion()
     fwVer = (fwVer << 8) | mRegAccr->readuserRegister(0, 0x7e);
     return fwVer;
 }
+
 int pjp255FwUpdater::getReadSysRegister(byte bank,byte addr)
 {
     int value;
@@ -245,13 +236,51 @@ int pjp255FwUpdater::getReadUserRegister(byte bank,byte addr)
 
 bool pjp255FwUpdater::fullyUpgrade()
 {
-   if (mTargetFirmware.size() <= 0)
+    if (mTargetFirmware.size() <= 0)
+    {
+        printf("Load firmware size error.");
         return false;
-        
-    bool erase = true;
-    writeFirmware(erase);
-    usleep(100000); //wait 100ms
-    writeParameter();
+    }
+    if (mTargetParameter.size() <= 0)
+    {
+        printf("Load parameter size error.");
+        return false;
+    }
+
+    mFlashCtrlr->enterEngineerMode();
+
+    bool res = mFlashCtrlr->erase(pjp255FlashCtrlr::FIRMWARE_START_PAGE, 1);
+    if (!res)
+    {
+        printf("Erase firmware failed.\n");
+        mFlashCtrlr->exitEngineerMode();
+        return false;
+    }
+
+    res = false;
+    res = mFlashCtrlr->writeFlash(mTargetParameter.data(),
+            mTargetParameter.size(), pjp255FlashCtrlr::PARAMETER_START_PAGE, true);
+
+    if (!res)
+    {
+        printf("Update parameter failed.\n");
+        mFlashCtrlr->exitEngineerMode();
+        return false;
+    }
+    
+    res = false;
+    res = mFlashCtrlr->writeFlash(mTargetFirmware.data(),
+        mTargetFirmware.size(), pjp255FlashCtrlr::FIRMWARE_START_PAGE, true);
+
+    if (!res)
+    {
+        printf("Update firmware failed.\n");
+        mFlashCtrlr->exitEngineerMode();
+        return false;
+    }
+
+    mFlashCtrlr->exitEngineerMode();
+    printf("Update completed.\n");
     return true;
 }
 
