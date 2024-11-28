@@ -107,6 +107,10 @@ namespace pixart
         int readSram(byte * data, int length);
 
         uint32_t calCheckSum(byte* array, int length);
+
+    private:
+        bool writeSector(byte* data, int length, int startPage, int index); 
+        bool readAndVerifySector(byte* originalData, int length, int startPage, int index);
     };
 }
 #endif //__PLP239_FLASH_CONTROLLER__

@@ -83,40 +83,81 @@ int Plp239FlashCtrlr::writeFlash(byte* data, int length, int startPage,
         }
     }
 
-    bool res = true;
-    for (int i = 0; i < length; i += SRAM_BURST_SIZE)
+    // Workaround: For the PLP239, there is an ExtendFlash block that is not included in the CRC check.
+    // If the burning process is incomplete, this block may not be detected by the CRC verification.
+    // To address this issue, the ExtendFlash block is programmed first, followed by the original Flash block.
+    // This ensures that any incomplete burning will still be detected by the CRC check.
+    // Process ExtendFlash
+    for (int i = SRAM_BURST_SIZE; i < length; i += SRAM_BURST_SIZE)
     {
-        int remainedSize = length - i;
-        int writeSize =
-                remainedSize < SRAM_BURST_SIZE ? remainedSize : SRAM_BURST_SIZE;
-        int startWriteSector = (startPage + i / PAGE_SIZE)
-                / PAGE_COUNT_PERSECTOR;
-        int writeSectorCount = ceil((double) writeSize / SECTOR_SIZE);
-#ifdef DEBUG
-        printf("startWriteSector: %d, writeSectorCount: %d\n", startWriteSector, writeSectorCount);
-#endif //DEBUG
-
-        res = writeSram(data + i, writeSize);
-        if (!res)
+        if (!writeSector(data, length, startPage, i) || !readAndVerifySector(data, length, startPage, i))
         {
-            printf(
-                    "Failed to writeSram, index: %d, writeSize: %d, startSector: %d, sectorCount: %d\n",
-                    i, writeSize, startWriteSector, writeSectorCount);
-            break;
-        }
-
-        res = writeSramToFlash(startWriteSector, writeSectorCount);
-        if (!res)
-        {
-            printf(
-                    "Failed to program, index: %d, writeSize: %d, startSector: %d, sectorCount: %d\n",
-                    i, writeSize, startWriteSector, writeSectorCount);
-            break;
+            printf("Failed to write or verify sector at index %d.\n", i);
+            return -4;
         }
     }
-    if (!res)
+
+    // Process NormalFlash
+    if (!writeSector(data, length, startPage, 0))
         return -4;
+
     return 1;
+}
+
+bool Plp239FlashCtrlr::readAndVerifySector(byte* originalData, int length, int startPage, int index)
+{
+    int remainedSize = length - index;
+    int readSize = remainedSize < SRAM_BURST_SIZE ? remainedSize : SRAM_BURST_SIZE;
+    int startReadSector = (startPage + index / PAGE_SIZE) / PAGE_COUNT_PERSECTOR;
+    int readSectorCount = ceil((double)readSize / SECTOR_SIZE);
+
+    // Allocate buffer for reading data
+    byte* readBuffer = new byte[readSize];
+
+    // Read data from flash
+    readFlashToSram(startReadSector, readSectorCount);
+    int actualReadSize = readSram(readBuffer, readSize);
+
+    // Compare read data with original data
+    bool isValid = (actualReadSize == readSize) && (memcmp(originalData + index, readBuffer, readSize) == 0);
+
+#ifdef DEBUG
+    if (!isValid)
+    {
+        printf("Data verification failed at index %d. Expected size: %d, Actual size: %d\n", index, readSize, actualReadSize);
+    }
+#endif // DEBUG
+
+    delete[] readBuffer; // Free memory
+    return isValid;
+}
+
+bool Plp239FlashCtrlr::writeSector(byte* data, int length, int startPage, int index)
+{
+    int remainedSize = length - index;
+    int writeSize = remainedSize < SRAM_BURST_SIZE ? remainedSize : SRAM_BURST_SIZE;
+    int startWriteSector = (startPage + index / PAGE_SIZE) / PAGE_COUNT_PERSECTOR;
+    int writeSectorCount = ceil((double)writeSize / SECTOR_SIZE);
+
+#ifdef DEBUG
+    printf("startWriteSector: %d, writeSectorCount: %d\n", startWriteSector, writeSectorCount);
+#endif // DEBUG
+
+    if (!writeSram(data + index, writeSize))
+    {
+        printf("Failed to writeSram, index: %d, writeSize: %d, startSector: %d, sectorCount: %d\n",
+               index, writeSize, startWriteSector, writeSectorCount);
+        return false;
+    }
+
+    if (!writeSramToFlash(startWriteSector, writeSectorCount))
+    {
+        printf("Failed to program, index: %d, writeSize: %d, startSector: %d, sectorCount: %d\n",
+               index, writeSize, startWriteSector, writeSectorCount);
+        return false;
+    }
+
+    return true;
 }
 
 int Plp239FlashCtrlr::readFlash(byte** data, int startPage, int pageLength)
